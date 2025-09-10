@@ -1,0 +1,121 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id         Int     @id @default(autoincrement())
+  email      String  @unique
+  name       String
+  password   String
+  createdAt  DateTime @default(now())
+  workflows  Workflow[]
+  creadentials Credentials[]
+}
+
+model Workflow {
+  id            String     @id @default(uuid())
+  triggerId     String
+  userId       Int
+  user         User       @relation(fields: [userId], references: [id])
+  trigger      Trigger?   // One-to-one relation
+  actions      Action[]   // One-to-many relation
+  workFlowRuns WorkflowRun[]   // Track executions
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Trigger {
+  id                  String             @id @default(uuid())
+  workflowId               String             @unique
+  availableTriggersId String
+  metadata            Json               @default("{}")
+  type                AvailableTriggers  @relation(fields: [availableTriggersId], references: [id])
+  workflow            Workflow           @relation(fields: [workflowId], references: [id])
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model AvailableTriggers {
+  id         String    @id @default(uuid())
+  name       String
+  image      String?
+  triggers   Trigger[]   // Available Triggers catalog
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Action {
+  id                String           @id @default(uuid())
+  workflowId        String
+  workflow          Workflow         @relation(fields: [workflowId], references: [id])
+  metadata          Json             @default("{}")
+  availableActionId String
+  type             AvailableAction   @relation(fields: [availableActionId], references: [id])
+  sortingOrder      Int              @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model AvailableAction {
+  id         String   @id @default(uuid())
+  name       String
+  image      String?
+  actions    Action[]   // Available actions catalog
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model WorkflowRun {         //Every time a Zap is triggered, a ZapRun record is created.
+  id            String         @id @default(uuid())
+  workflowId         String
+  metadata      Json           // Trigger run metadata
+  runTime       DateTime       @default(now())
+  status        String         @default("PENDING") // PENDING, SUCCESS, FAILED
+  workflow      Workflow       @relation(fields: [workflowId], references: [id])
+  WorkflowRunOutbox  WorkflowRunOutbox?
+  executionLogs ExecutionLog[]
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model WorkflowRunOutbox {      //Works as a queue system to send ZapRun data to Kafka or Redis.
+  id          String     @id @default(uuid())
+  WorkflowRunId    String     @unique
+  status      String     @default("PENDING")  // PENDING, SENT, FAILED
+  workflowRun WorkflowRun     @relation(fields: [WorkflowRunId], references: [id])
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model ExecutionLog {       //Logs detailed info during Zap execution:
+  id          String    @id @default(uuid())
+  WorkflowRunId    String
+  step        Int       // Which step/action of the Zap this log is for
+  message     String
+  status      String    @default("INFO")  // INFO, WARN, ERROR
+  createdAt   DateTime  @default(now())
+  WorkflowRun WorkflowRun   @relation(fields: [WorkflowRunId], references: [id])
+}
+
+model Credentials {
+  id         Int     @id @default(autoincrement())
+  userId     Int
+  user       User    @relation(fields: [userId], references: [id])
+  title       String
+  platform    String
+  credentials Json
+  description String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
