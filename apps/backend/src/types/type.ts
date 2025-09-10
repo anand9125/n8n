@@ -1,5 +1,6 @@
 import z from "zod";
-
+export const JWT_SECRET  = "user_secret";
+export const JWT_SEC = "admin_secret";
 
 export const workflowSchema = z.object({
     avaialbleTriggersId: z.string(),

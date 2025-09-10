@@ -1,6 +1,7 @@
 import { Request,Response } from "express";
 import {PrismaClient} from "@prisma/client";
-
+import { JWT_SECRET } from "../types/type";
+import jwt from "jsonwebtoken";
 const prisma = new PrismaClient();
 
 export const userSignup = async (req: Request, res: Response) => { 
@@ -53,9 +54,11 @@ export const userSignin = async (req: Request, res: Response) => {
             return
         }
         if(user.password === password){
+            const token = jwt.sign({id:user.id},JWT_SECRET);
             res.status(200).json({
                 message: "User logged in successfully",
-                user
+                user,
+                token
             })   
         }
     }catch(err){
