@@ -55,7 +55,20 @@ export const createWorkflow = async (req: Request, res: Response) => {
 }        
 
 export const getAllWorkflows = async (req: Request, res: Response) => {
+    try{
+        const workflows = await prisma.workflow.findMany()
+        res.status(200).json({
+            message: "Workflows found successfully",
+            workflows
+        })
+    }catch(err){
+        res.status(500).json({
+            message: "Error getting workflows",
+            error: err
+        })
+    }
 }
+
 export const getWorkflowById = async (req: Request, res: Response) => {
     const id = req.params.id;
     try{
@@ -93,6 +106,6 @@ export const getWorkflowById = async (req: Request, res: Response) => {
     }
 }
 
-export const updateWorkflow = async (req: Request, res: Response) => {
+export const updateWorkflow = async (req: Request, res: Response) =>{
     
 }
