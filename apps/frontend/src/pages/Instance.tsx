@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
+import { useNavigate } from "react-router-dom";
 import { 
   Search, 
   ChevronDown, 
@@ -44,6 +45,10 @@ const Instance = () => {
     { label: "Time saved", value: "--", subtitle: "Last 7 days" },
     { label: "Run time (avg.)", value: "0s", subtitle: "Last 7 days" }
   ];
+  const navigate = useNavigate();
+  const handleCreateWorkflow = () => {
+    navigate("/workflow");
+  };
 
   const tabs = ["Workflows", "Credentials", "Executions"];
 
@@ -101,7 +106,7 @@ const Instance = () => {
               <h1 className="text-2xl font-bold text-foreground">Overview</h1>
               <p className="text-muted-foreground">All the workflows, credentials and executions you have access to</p>
             </div>
-            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <Button className="bg-primary hover:bg-primary/90 text-primary-foreground" onClick={handleCreateWorkflow}>
               <Plus className="w-4 h-4 mr-2" />
               Create Workflow
             </Button>

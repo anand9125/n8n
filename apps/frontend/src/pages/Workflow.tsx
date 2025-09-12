@@ -19,6 +19,7 @@ import {
   FolderOpen,
   Plus
 } from "lucide-react";
+import { WorkflowBuilder } from '@/components/WorkflowBuilder';
 
 const sidebarItems = [
   { icon: BarChart3, label: "Overview", active: true },
@@ -121,17 +122,7 @@ export default function App() {
       {/* Main content area */}
       <main className="flex-1 p-4">
         <div style={{ height: '100vh', width: '100%' }}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            fitView
-          >
-            <Background />
-            <Controls />
-          </ReactFlow>
+          <WorkflowBuilder></WorkflowBuilder>
         </div>
       </main>
       
