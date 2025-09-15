@@ -9,6 +9,7 @@ import { Crown } from "lucide-react";
 const Index = () => {
   return (
     <div className="min-h-screen ">
+      <div className="max-w-7xl mx-auto p-6">
       <Header />
       
       <main className="container mx-auto px-6 py-8">
@@ -30,6 +31,7 @@ const Index = () => {
           </div>
         </div>
       </main>
+      </div>
     </div>
   );
 };

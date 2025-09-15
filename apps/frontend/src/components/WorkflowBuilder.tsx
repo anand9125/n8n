@@ -34,18 +34,18 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [showIntegrationSidebar, setShowIntegrationSidebar] = useState(false);
   const [webhookConfigured, setWebhookConfigured] = useState(false);
-  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);  //track the currently selected node
 
-  const onConnect = useCallback(
+  const onConnect = useCallback( //Automatically adds an edge when the user connects two nodes in the UI
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
   );
 
-  const handleAddFirstStep = () => {
+  const handleAddFirstStep = () => {  //Shows the trigger sidebar where the user selects a trigger to start the workflow.
     setShowTriggerSidebar(true);
   };
 
-  const handleTriggerSelect = (triggerType: string) => {
+  const handleTriggerSelect = (triggerType: string) => { //Handles selection of a trigger type
     setShowTriggerSidebar(false);
     
     if (triggerType === 'webhook') {
@@ -56,99 +56,112 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
     }
   };
 
-  const handleWebhookSave = (webhookData: any) => {
+  const handleWebhookSave = (webhookData: any) => {  //Closes the webhook dialog and marks webhook as configured.
     setShowWebhookDialog(false);
     setWebhookConfigured(true);
     
-    // Create webhook node
-    const webhookNode: Node = {
-      id: 'webhook-1',
-      type: 'default',
-      position: { x: 400, y: 200 },
-      data: { 
-        label: (
-          <div className="flex items-center gap-2 p-2 relative">
-            <div className="w-5 h-5 rounded-lg bg-orange-100 flex items-center justify-center">
-              <Webhook className="w-4 h-4 text-orange-600" />
-            </div>
-            <div>
-              <div className="font-medium text-sm">Webhook</div>
-            </div>
-            <button
-              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:opacity-90 transition-colors pointer-events-auto"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); handleDeleteNode('webhook-1'); }}
-            >
-              <X className="w-3 h-3" />
-            </button>
+      // Create webhook node
+  const webhookNode: Node = {
+    id: 'webhook-1',
+    type: 'default',
+    position: { x: 400, y: 200 },
+    data: { 
+      label: (
+        <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
+          {/* Webhook Icon */}
+          <div className="w-5 h-5 rounded  flex items-center justify-center">
+            <Webhook className="w-3 h-3 text-orange-400" />
           </div>
-        )
-      },
-      style: {
-        background: 'hsl(var(--workflow-node-bg))',
-        border: '1px solid hsl(var(--workflow-node-border)) ',
-        borderRadius: '12px',
-        fontSize: '14px',
-        width: '150px',
-      },
-    };
 
-    const addButtonNode: Node = {
-      id: 'add-next',
-      type: 'default',
-      position: { x: 400, y: 320 },
-      data: {
-        label: (
-           <div 
-             className="w-8 h-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-accent transition-colors"
-             onMouseDown={(e) => e.stopPropagation()}
-             onClick={(e) => { e.stopPropagation(); handleAddNextStep('add-next'); }}
-           >
-             <Plus className="w-6 h-6 text-muted-foreground" />
-           </div>
-        )
-      },
-      style: {
-        background: 'transparent',
-        border: 'none',
-        width: '40px',
-        height: '40px',
-      },
-    };
+          {/* Webhook Text */}
+          <div className="font-medium text-xs text-black ">
+            Webhook
+          </div>
 
-    setNodes([webhookNode, addButtonNode]);
-    
-    // Connect webhook to add button
-    const newEdge: Edge = {
-      id: 'webhook-to-add',
-      source: 'webhook-1',
-      target: 'add-next',
-      style: { stroke: 'hsl(var(--muted-foreground))' },
-    };
-    
-    setEdges([newEdge]);
+          {/* Delete Button - Positioned Top Right */}
+          <button
+            className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); handleDeleteNode('webhook-1'); }}
+          >
+            <X className="w-2 h-2" />
+          </button>
+        </div>
+      )
+    },
+    style: {
+      background: '#e5e7eb',  // Tailwind's bg-gray-200
+      border: '1px solid #4a5568',
+      borderRadius: '8px',
+      fontSize: '12px',
+      width: '100px',   // Fixed width
+      height: '30px',   // Fixed height
+    },
   };
 
-  const handleAddNextStep = (nodeId: string) => {
+  const addButtonNode: Node = {
+    id: 'add-next',
+    type: 'default',
+    position: { x: 400, y: 320 },
+    data: {
+      label: (
+        <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+          <div
+            className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); handleAddNextStep('add-next'); }}
+          >
+            <Plus className="w-4 h-4 text-gray-600" />
+          </div>
+        </div>
+      )
+    },
+    style: {
+      background: '#e5e7eb',  // Solid background
+      border: 'none',
+      borderRadius: '8px',
+      width: '40px',
+      height: '40px',
+    },
+  };
+
+
+  setNodes([webhookNode, addButtonNode]);
+  
+  // Connect webhook to add button
+  const newEdge: Edge = {
+    id: 'webhook-to-add',
+    source: 'webhook-1',
+    target: 'add-next',
+    style: { stroke: 'hsl(var(--muted-foreground))' },
+  };
+
+  setEdges([newEdge]);
+  };
+
+  const handleAddNextStep = (nodeId: string) => {   //Opens the Integration Sidebar to configure the next step when clicking the add button.
     setSelectedNodeId(nodeId);
     setShowIntegrationSidebar(true);
   };
 
-  const handleIntegrationSelect = (integration: string) => {
+  const handleIntegrationSelect = (integration: string) => {  //When an integration (e.g., Telegram, Resend) is selected:
     setShowIntegrationSidebar(false);
     
-    // Find the current add button node to determine position
+    // We need the position of the clicked "Add Next Step" node to place the new integration node in the correct location.
     const currentAddNode = nodes.find(node => node.id === selectedNodeId);
     if (!currentAddNode) return;
 
     // Generate unique ID for the new integration node
     const existingIntegrationNodes = nodes.filter(node => node.id.startsWith(integration));
-    const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;
+    const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;//telegram-1
     
     // Generate unique ID for the new add button
     const existingAddNodes = nodes.filter(node => node.id.startsWith('add-next'));
     const newAddNodeId = `add-next-${existingAddNodes.length + 1}`;
     
+    const oldEdge = edges.find(edge => edge.target === selectedNodeId); //get the previous connection
+    //selectedNodeId: the ID of the current "Add Next Step" button being clicked.
+    //oldEdge.source: the ID of the node that was connected to this "Add Next Step
     // Create integration node at current add button position
     const integrationNode: Node = {
       id: integrationNodeId,
@@ -156,38 +169,37 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
       data: { 
         label: (
-          <div className="flex items-center gap-2 p-4 relative">
-             <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
+          <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
+             <div className="w-5 h-5 rounded  flex items-center justify-center">
                {integration === 'telegram' ? (
-                 <Send className="w-4 h-4 text-blue-600" />
+                 <Send className="w-3 h-3 text-blue-600" />
                ) : (
-                 <Bot className="w-4 h-4 text-blue-600" />
+                 <Bot className="w-3 h-3 text-blue-600" />
                )}
              </div>
             <div>
-              <div className="font-medium text-sm">{integration === 'telegram' ? 'Telegram' : 'Resend'}</div>
+              <div className="font-medium text-xs text-black">{integration === 'telegram' ? 'Telegram' : 'Resend'}</div>
             </div>
-            <div
-              className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center hover:opacity-90 transition-colors cursor-pointer z-10"
-              style={{ pointerEvents: 'all' }}
-              onMouseDown={(e) => {
-                e.stopPropagation();
-                e.preventDefault();
-                handleDeleteNode(integrationNodeId);
-              }}
-            >
-              <X className="w-3 h-3" />
-            </div>
+            <button
+            className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); handleDeleteNode(integrationNodeId); }}
+           >
+            <X className="w-2 h-2" />
+        </button>
           </div>
-        )
+        ),
+        prevNodeId: oldEdge?.source || null,
+        nextNodeId: newAddNodeId,
       },
       style: {
-        background: 'hsl(var(--workflow-node-bg))',
-        border: '1px solid hsl(var(--workflow-node-border))',
-        borderRadius: '12px',
-        fontSize: '14px',
-        width: '200px',
-      },
+          background: '#e5e7eb',  // Tailwind's bg-gray-200
+          border: '1px solid #4a5568',
+          borderRadius: '8px',
+          fontSize: '12px',
+          width: '100px',   // Fixed width
+          height: '30px',   // Fixed height
+        },
     };
 
     // Create new add button node 120px below the integration node
@@ -197,20 +209,25 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       position: { x: currentAddNode.position.x, y: currentAddNode.position.y + 120 },
       data: {
         label: (
-           <div 
-             className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-accent transition-colors"
-             onMouseDown={(e) => e.stopPropagation()}
-             onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId); }}
-           >
-             <Plus className="w-6 h-6 text-muted-foreground" />
-           </div>
-        )
+           <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+             <div 
+           className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+           onMouseDown={(e) => e.stopPropagation()}
+           onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId); }}
+        >
+          <Plus className="w-4 h-4 text-gray-600" />
+            </div>
+        </div>
+        ),
+        prevNodeId: integrationNodeId,
+        nextNodeId: null,
       },
       style: {
-        background: 'transparent',
+        background: '#e5e7eb',  // Solid background
         border: 'none',
-        width: '48px',
-        height: '48px',
+        borderRadius: '8px',
+        width: '40px',
+        height: '40px',
       },
     };
 
@@ -254,53 +271,82 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
     });
   };
 
-  const handleDeleteNode = (nodeId: string) => {
-    // If deleting the trigger, clear the whole workflow
-    if (nodeId === 'webhook-1') {
-      setNodes([]);
-      setEdges([]);
-      setSelectedNodeId(null);
-      setWebhookConfigured(false);
-      setShowIntegrationSidebar(false);
-      setShowTriggerSidebar(false);
-      setShowWebhookDialog(false);
-      return;
-    }
+// When the user clicks the delete (X) button on a node, the goal is to:
+// Remove the node from the workflow.
+// Remove any edges connected to the node.
+// Reconnect the previous node to the next node (if applicable).
+// Ensure the workflow stays consistent (no dangling nodes).
 
-    // Find the node to delete
-    const nodeToDelete = nodes.find(node => node.id === nodeId);
-    if (!nodeToDelete) return;
 
-    // Find edges connected to this node
-    const incomingEdge = edges.find(edge => edge.target === nodeId);
-    const outgoingEdge = edges.find(edge => edge.source === nodeId);
+const handleDeleteNode = (nodeId: string) => {  
+  if (nodeId === 'webhook-1') {
+    setNodes([]);
+    setEdges([]);
+    setSelectedNodeId(null);
+    setWebhookConfigured(false);
+    setShowIntegrationSidebar(false);
+    setShowTriggerSidebar(false);
+    setShowWebhookDialog(false);
+    return;
+  }
+   
+  //) Find the node to delete and create updated node list
+  setNodes(prevNodes => {  //prevNodes: the current list of nodes (array of node)
+    const nodeToDelete = prevNodes.find(node => node.id === nodeId);
+    if (!nodeToDelete) return prevNodes;
 
-    // Remove the node
-    setNodes(prevNodes => prevNodes.filter(node => node.id !== nodeId));
+    const updatedNodes = prevNodes.filter(node => node.id !== nodeId);
 
-    // Update edges - connect the previous node directly to the next node
+    // Remove edges in a separate state update
     setEdges(prevEdges => {
-      let newEdges = prevEdges.filter(edge => edge.source !== nodeId && edge.target !== nodeId);
+      const incomingEdges = prevEdges.filter(edge => edge.target === nodeId);
+      const outgoingEdges = prevEdges.filter(edge => edge.source === nodeId);
 
-      // If both incoming and outgoing edges exist, create a direct connection
-      if (incomingEdge && outgoingEdge) {
-        const directEdge: Edge = {
-          id: `${incomingEdge.source}-to-${outgoingEdge.target}-${Date.now()}`,
-          source: incomingEdge.source,
-          target: outgoingEdge.target,
-          style: { stroke: 'hsl(var(--muted-foreground))' },
-        };
-        newEdges.push(directEdge);
+      let newEdges = prevEdges.filter(edge => edge.source !== nodeId && edge.target !== nodeId);
+       
+      if (incomingEdges.length > 0) {
+        if (outgoingEdges.length > 0) {
+          // Connect incoming sources to outgoing targets
+          incomingEdges.forEach(inEdge => {
+            outgoingEdges.forEach(outEdge => {
+              const directEdge: Edge = {
+                id: `${inEdge.source}-to-${outEdge.target}-${Date.now()}`,
+                source: inEdge.source,
+                target: outEdge.target,
+                style: { stroke: 'hsl(var(--muted-foreground))' },
+              };
+              newEdges.push(directEdge);
+            });
+          });
+        } else {
+          // No outgoing, connect incoming to next add-next node
+          const addNextNode = updatedNodes.find(node => node.id.startsWith('add-next'));
+          if (addNextNode) {
+            incomingEdges.forEach(inEdge => {
+              const directEdge: Edge = {
+                id: `${inEdge.source}-to-${addNextNode.id}-${Date.now()}`,
+                source: inEdge.source,
+                target: addNextNode.id,
+                style: { stroke: 'hsl(var(--muted-foreground))' },
+              };
+              newEdges.push(directEdge);
+            });
+          }
+        }
       }
 
       return newEdges;
     });
 
-    // Reset selection if it was pointing to the deleted node
-    if (selectedNodeId === nodeId) {
-      setSelectedNodeId(null);
-    }
-  };
+    return updatedNodes;
+  });
+
+  if (selectedNodeId === nodeId) {
+    setSelectedNodeId(null);
+  }
+};
+
+
 
   const AddFirstStepCard = () => (
     <Card 

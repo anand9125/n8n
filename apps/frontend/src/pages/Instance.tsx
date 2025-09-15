@@ -9,34 +9,18 @@ import {
   Search, 
   ChevronDown, 
   Filter,
-  User,
-  Workflow,
-  Key,
-  Calendar,
-  Database,
-  BarChart3,
-  Settings,
-  HelpCircle,
-  Sparkles,
-  FolderOpen,
   Plus
 } from "lucide-react";
+
+import WorkflowItem from "@/components/WorkflowItem";
+import ExecutionItem from "@/components/ExecutionItem";
+import CredentialItem from "@/components/CredentialItem";
 
 const Instance = () => {
   const [activeTab, setActiveTab] = useState("Workflows");
   const [workflowActive, setWorkflowActive] = useState(false);
 
-  const sidebarItems = [
-    { icon: BarChart3, label: "Overview", active: true },
-    { icon: User, label: "Personal" },
-    { icon: FolderOpen, label: "Projects" },
-    { icon: Settings, label: "Admin Panel" },
-    { icon: Workflow, label: "Templates" },
-    { icon: Database, label: "Variables" },
-    { icon: BarChart3, label: "Insights" },
-    { icon: HelpCircle, label: "Help" },
-    { icon: Sparkles, label: "What's New" }
-  ];
+
 
   const stats = [
     { label: "Prod. executions", value: "0", subtitle: "Last 7 days" },
@@ -49,17 +33,23 @@ const Instance = () => {
   const handleCreateWorkflow = () => {
     navigate("/workflow");
   };
+ console.log(activeTab)
 
   const tabs = ["Workflows", "Credentials", "Executions"];
 
   return (
-    <div className="min-h-screen bg-background flex">
-      {/* Sidebar */}
-    
+   <div className="min-h-screen bg-background flex flex-col">
+  {/* Optional Sidebar Here */}
+  
+  <div className="flex-1 flex justify-center">
+    <div className="w-full max-w-7xl px-4">
+   <div className="bg-gray-200">Hiiiiiii</div>
+      
+
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
-        <div className="p-6">
+      <main className=" overflow-hidden">
+        <div className="p-6 ">
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
@@ -128,50 +118,16 @@ const Instance = () => {
             </div>
 
             {/* Workflow Item */}
-            <Card className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <div className="w-10 h-10 bg-muted rounded-lg flex items-center justify-center">
-                    <Workflow className="w-5 h-5 text-muted-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-foreground">My workflow</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Last updated 3 hours ago | Created 10 September
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="flex items-center space-x-4">
-                  <Badge variant="secondary">Personal</Badge>
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-muted-foreground">
-                      {workflowActive ? "Active" : "Inactive"}
-                    </span>
-                    <Switch
-                      checked={workflowActive}
-                      onCheckedChange={setWorkflowActive}
-                    />
-                  </div>
-                </div>
-              </div>
-            </Card>
+            {activeTab=="Workflows" && <WorkflowItem/>}
+            {activeTab=="Credentials" && <CredentialItem />}
+            {activeTab=="Excutions" && <ExecutionItem />}
 
-            {/* Pagination */}
-            <div className="flex items-center justify-between">
-              <div className="text-sm text-muted-foreground">
-                Total 1
-              </div>
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">50/page</span>
-                <Button variant="outline" size="sm">
-                  1
-                </Button>
-              </div>
-            </div>
+            
           </div>
         </div>
       </main>
+      </div>
+      </div>
     </div>
   );
 };
