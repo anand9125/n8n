@@ -7,7 +7,7 @@ import Index from "./pages/Index";
 import Instance from "./pages/Instance";
 import NotFound from "./pages/NotFound";
 import Workflow from "./pages/Workflow";
-
+import Personal from "./pages/Personal";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -22,6 +22,7 @@ const App = () => (
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           <Route path="/workflow" element={<Workflow/>}></Route>
+          <Route path="/instance/personal" element={<Personal/>}></Route>
         
         </Routes>
       </BrowserRouter>
