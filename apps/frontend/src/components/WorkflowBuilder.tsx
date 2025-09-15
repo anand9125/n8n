@@ -15,7 +15,6 @@ import {
 import '@xyflow/react/dist/style.css';
 import { Plus, Webhook, Bot, Clock, Send, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { TriggerSidebar } from './TriggerSidebar';
 import { WebhookDialog } from './WebhookDialog';
@@ -68,8 +67,8 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       position: { x: 400, y: 200 },
       data: { 
         label: (
-          <div className="flex items-center gap-2 p-4 relative">
-            <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
+          <div className="flex items-center gap-2 p-2 relative">
+            <div className="w-5 h-5 rounded-lg bg-orange-100 flex items-center justify-center">
               <Webhook className="w-4 h-4 text-orange-600" />
             </div>
             <div>
@@ -87,10 +86,10 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       },
       style: {
         background: 'hsl(var(--workflow-node-bg))',
-        border: '1px solid hsl(var(--workflow-node-border))',
+        border: '1px solid hsl(var(--workflow-node-border)) ',
         borderRadius: '12px',
         fontSize: '14px',
-        width: '200px',
+        width: '150px',
       },
     };
 
@@ -101,7 +100,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       data: {
         label: (
            <div 
-             className="w-12 h-12 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-accent transition-colors"
+             className="w-8 h-8 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-accent transition-colors"
              onMouseDown={(e) => e.stopPropagation()}
              onClick={(e) => { e.stopPropagation(); handleAddNextStep('add-next'); }}
            >
@@ -112,8 +111,8 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       style: {
         background: 'transparent',
         border: 'none',
-        width: '48px',
-        height: '48px',
+        width: '40px',
+        height: '40px',
       },
     };
 
@@ -305,7 +304,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
 
   const AddFirstStepCard = () => (
     <Card 
-      className="pointer-events-auto absolute z-10 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-32 border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-accent/50 transition-colors cursor-pointer flex items-center justify-center"
+      className="pointer-events-auto absolute z-10 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-48 h-28 border-2 border-dashed border-muted-foreground/30 hover:border-primary hover:bg-accent/50 transition-colors cursor-pointer flex items-center justify-center"
       onClick={handleAddFirstStep}
     >
       <div className="text-center">

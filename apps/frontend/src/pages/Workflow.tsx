@@ -69,33 +69,18 @@ const initialEdges = [
   },
 ];
 export default function App() {
-    const[nodes, setNodes] = useState(initialNodes);
-    const[edges, setEdges] = useState(initialEdges);
-
-    const onNodesChange = useCallback(
-      (changes) => setNodes((nodesSnapshot) => applyNodeChanges(changes, nodesSnapshot)),
-      [],
-    );
-    const onEdgesChange = useCallback(
-      (changes) => setEdges((edgesSnapshot) => applyEdgeChanges(changes, edgesSnapshot)),
-      [],
-    );
-    const onConnect = useCallback(
-      (params) => setEdges((edgesSnapshot) => addEdge(params, edgesSnapshot)),
-      [],
-    );
-    
-  return (
-    <div className="min-h-screen bg-background flex">
+ 
+return (
+    <div className="min-h-screen bg-gray-100 flex">
       
       {/* Sidebar */}
-      <aside className="w-64 bg-card border-r border-border">
+      <aside className="w-64 bg-white border-r border-gray-200">
         <div className="p-4">
           <div className="flex items-center space-x-2 mb-8">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">n8n</span>
+            <div className="w-8 h-8 bg-red-500 rounded-lg flex items-center justify-center">
+              <span className="text-white font-bold text-sm">n8n</span>
             </div>
-            <span className="font-semibold text-foreground">n8n</span>
+            <span className="font-semibold text-gray-800">n8n</span>
           </div>
 
           <nav className="space-y-1">
@@ -106,8 +91,8 @@ export default function App() {
                   key={item.label}
                   className={`w-full flex items-center space-x-3 px-3 py-2 rounded-lg text-sm transition-colors ${
                     item.active 
-                      ? "bg-accent text-accent-foreground font-medium" 
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                      ? "bg-blue-50 text-blue-700 font-medium border-l-4 border-blue-500" 
+                      : "text-gray-600 hover:bg-gray-50 hover:text-gray-800"
                   }`}
                 >
                   <Icon className="w-4 h-4" />
@@ -120,12 +105,33 @@ export default function App() {
       </aside>
 
       {/* Main content area */}
-      <main className="flex-1 p-4">
-        <div style={{ height: '100vh', width: '100%' }}>
-          <WorkflowBuilder></WorkflowBuilder>
+      <main className="flex-1 flex flex-col">
+        {/* Top bar (optional - matches n8n style) */}
+        <div className="bg-white border-b border-gray-200 px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <h1 className="text-lg font-semibold text-gray-800">My workflow</h1>
+              <div className="flex items-center space-x-2">
+                <span className="text-sm text-gray-500">Personal</span>
+                <ChevronDown className="w-4 h-4 text-gray-400" />
+              </div>
+            </div>
+            <div className="flex items-center space-x-2">
+              <Button variant="outline" size="sm">
+                Share
+              </Button>
+              <Button size="sm" className="bg-red-500 hover:bg-red-600">
+                Save
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Workflow canvas */}
+        <div className="flex-1 relative">
+          <WorkflowBuilder />
         </div>
       </main>
-      
     </div>
   );
 }

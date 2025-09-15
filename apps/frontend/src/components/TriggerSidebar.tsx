@@ -24,36 +24,36 @@ export const TriggerSidebar: React.FC<TriggerSidebarProps> = ({
       title: 'Trigger manually',
       description: 'Runs the flow on clicking a button in n8n. Good for getting started quickly',
     },
-    {
-      id: 'app-event',
-      icon: Zap,
-      title: 'On app event',
-      description: 'Runs the flow when something happens in an app like Telegram, Notion or Airtable',
-    },
-    {
-      id: 'schedule',
-      icon: Clock,
-      title: 'On a schedule',
-      description: 'Runs the flow every day, hour, or custom interval',
-    },
+    // {
+    //   id: 'app-event',
+    //   icon: Zap,
+    //   title: 'On app event',
+    //   description: 'Runs the flow when something happens in an app like Telegram, Notion or Airtable',
+    // },
+    // {
+    //   id: 'schedule',
+    //   icon: Clock,
+    //   title: 'On a schedule',
+    //   description: 'Runs the flow every day, hour, or custom interval',
+    // },
     {
       id: 'webhook',
       icon: Webhook,
       title: 'On webhook call',
       description: 'Runs the flow on receiving an HTTP request',
     },
-    {
-      id: 'form',
-      icon: FileText,
-      title: 'On form submission',
-      description: 'Generate webforms in n8n and pass their responses to the workflow',
-    },
-    {
-      id: 'workflow',
-      icon: Send,
-      title: 'When executed by another workflow',
-      description: 'Runs the flow when called by the Execute Workflow node from a different workflow',
-    },
+    // {
+    //   id: 'form',
+    //   icon: FileText,
+    //   title: 'On form submission',
+    //   description: 'Generate webforms in n8n and pass their responses to the workflow',
+    // },
+    // {
+    //   id: 'workflow',
+    //   icon: Send,
+    //   title: 'When executed by another workflow',
+    //   description: 'Runs the flow when called by the Execute Workflow node from a different workflow',
+    // },
   ];
 
   return (
