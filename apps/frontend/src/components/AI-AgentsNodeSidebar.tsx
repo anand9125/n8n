@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-interface IntegrationSidebarProps {
+interface  AIAgentsNodeSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onIntegrationSelect: (integration: string) => void;
 }
 
-export const IntegrationSidebar: React.FC<IntegrationSidebarProps> = ({
+export const AIAgentsNodeSidebar: React.FC< AIAgentsNodeSidebarProps> = ({
   isOpen,
   onClose,
   onIntegrationSelect,
@@ -18,24 +18,24 @@ export const IntegrationSidebar: React.FC<IntegrationSidebarProps> = ({
   if (!isOpen) return null;
 
   const integrations = [
-    {
-      id: 'telegram',
-      icon: MessageCircle,
-      title: 'Telegram',
-      description: 'Send messages, manage groups, and interact with Telegram Bot API',
-    },
-    {
-      id: 'resend',
-      icon: Send,
-      title: 'Resend',
-      description: 'Send transactional emails with high deliverability rates',
-    },
-    {
-      id: 'AI-Agents',
-      icon: BrainCircuit,
-      title: 'AI-Agents',
-      description: 'Build autonomous agents summarize or seacrch docoment,etc',
-    },
+    // {
+    //   id: 'telegram',
+    //   icon: MessageCircle,
+    //   title: 'Telegram',
+    //   description: 'Send messages, manage groups, and interact with Telegram Bot API',
+    // },
+    // {
+    //   id: 'resend',
+    //   icon: Send,
+    //   title: 'Resend',
+    //   description: 'Send transactional emails with high deliverability rates',
+    // },
+    // {
+    //   id: 'AI-Agents',
+    //   icon: BrainCircuit,
+    //   title: 'AI-Agents',
+    //   description: 'Build autonomous agents summarize or seacrch docoment,etc',
+    // },
   ];
 
   return (

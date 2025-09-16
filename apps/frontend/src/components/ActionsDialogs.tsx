@@ -8,13 +8,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
-interface WebhookDialogProps {
+interface ActionDailogsProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (webhookData: any) => void;
 }
 
-export const WebhookDialog: React.FC<WebhookDialogProps> = ({
+export const ActionDailogs: React.FC<ActionDailogsProps> = ({
   isOpen,
   onClose,
   onSave,
