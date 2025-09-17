@@ -1,21 +1,24 @@
 import jwt from "jsonwebtoken";
-import { JWT_SECRET } from "../types/type";
 
-export const userMiddlewares = async (req: any, res: any, next: any) => {
+import { Request, Response } from "express";
+import { UUID } from "crypto";
+import { JWT_SECRET } from "../types/type";
+export interface CustomRequest extends Request {
+  id?: UUID;
+}
+
+
+export const userMiddleware = (req: CustomRequest, res: Response, next: any) => {
     const token = req.headers.authorization;
-    if (!token) {
-        res.status(401).json({
-            message: "No token provided"
-        });
-        return;
+    console.log(token)
+     if(token){
+      const payload = jwt.verify(token,JWT_SECRET ) 
+      //@ts-ignore
+      req.id = payload.id;
+      next();
+    }else{
+      res.status(401).json({
+        message: "Unauthorized",
+      });
     }
-    try {
-        const decoded = jwt.verify(token, JWT_SECRET);
-        req.user = decoded;
-        next();
-    } catch (err) {
-        res.status(401).json({
-            message: "Invalid token"
-        });
-    }
-};
+};  

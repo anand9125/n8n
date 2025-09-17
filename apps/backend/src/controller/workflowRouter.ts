@@ -1,136 +1,165 @@
 import { PrismaClient } from "@prisma/client";
 import { Request,Response } from "express";
 import { workflowSchema } from "../types/type";
+import { CustomRequest } from "../middlewares/userMiddlewares";
 const prisma = new PrismaClient();
 
-export const createWorkflow = async (req: Request, res: Response) => {
-    try{
-        console.log("some one hit me");
-        const { nodes, edges, workflowId, userId } = req.body;
-        let triggerNodeId = "";
+
+export const createWorkflow = async (req: CustomRequest, res: Response) => {
+    try {
+        const { nodes, edges, workflowId } = req.body;
+        const userId = req?.id as string;
+
+        let triggerNodeId = '';
         let triggerMetadata = {};
         let triggerPositionX = 0;
         let triggerPositionY = 0;
-        console.log("reached here 1")
 
-        const actions: Array<{
+        const actionsInput: Array<{
             availableActionId: string;
             actionMetadata: any;
             positionX: number;
             positionY: number;
+            nodeId: string;
         }> = [];
-        const edge:Array<{
-          id: string;
-          source: string;
-          target: string;
+
+        const subnodesInput: Array<{
+            availableSubnodeId: string;
+            subnodeMetadata: any;
+            positionX: number;
+            positionY: number;
+            parentNodeId: string;
         }> = [];
-        console.log("reached here 5")
 
         nodes.forEach((node: any) => {
-            if (node.type === "trigger") {
-            triggerNodeId = node.data.triggerNodeId;
-            triggerMetadata = node.data.metadata;
-            triggerPositionX = node.position.x;
-            triggerPositionY = node.position.y;
+            if (node.type === 'trigger') {
+                triggerNodeId = node.data.triggerNodeId;
+                triggerMetadata = node.data.metadata;
+                triggerPositionX = node.position.x;
+                triggerPositionY = node.position.y;
             }
 
-            if (node.type === "action") {
-            actions.push({
-                availableActionId: node.data.actionNodeId,
-                actionMetadata: node.data.metadata,
-                positionX: node.position.x,
-                positionY: node.position.y,
-            });
+            if (node.type === 'action') {
+                actionsInput.push({
+                    availableActionId: node.data.actionNodeId,
+                    actionMetadata: node.data.metadata,
+                    positionX: node.position.x,
+                    positionY: node.position.y,
+                    nodeId: node.id, // Store the node id for linking later
+                });
+            }
+
+            if (node.type === 'subnode') {
+                subnodesInput.push({
+                    availableSubnodeId: node.data.subnodeNodeId,
+                    subnodeMetadata: node.data.metadata,
+                    positionX: node.position.x,
+                    positionY: node.position.y,
+                    parentNodeId: node.data.parentActionNodeId, // action node id it belongs to
+                });
             }
         });
-        console.log("reached here 6")
+
         const simplifiedEdges = edges.map((edge: any) => ({
-            id: edge.id,
             source: edge.source,
             target: edge.target,
         }));
 
-        console.log("reached here")
-        console.log(simplifiedEdges)
-        console.log(workflowId)
-        console.log(userId)
-        console.log(triggerNodeId)
-        console.log(triggerMetadata)
-        console.log(triggerPositionX)
-        console.log(triggerPositionY)   
-        console.log(actions)
-
-
-        const workflow = await prisma.$transaction(async(tx)=>{
-            console.log("reached here 7")
-                        console.log("workflowId:", workflowId);
-            console.log("userId:", userId);
-            console.log("actions array:", actions);
-
-            const workflow = await prisma.workflow.create({
-                data:{
-                    id:workflowId,
-                    userId:userId,
-                    triggerId:"",
-                    actions:{  
-                        create:actions.map((x,index)=>({  //this refer arrays of actions objects
-                            //the map function itrate over each element(x) and give the current indexes to
-                            availableActionId:x.availableActionId,
-                            sortingOrder:index,
-                            metadata:x.actionMetadata,
-                            positionX:x.positionX,
-                            positionY:x.positionY
-
-                        }))
-                    }    
-                }  
-            })
-            console.log("reached here 2")
-            const trigger = await prisma.trigger.create({
-                data:{
-                    workflowId:workflowId,
-                    availableTriggersId:triggerNodeId,
-                    metadata:triggerMetadata,
-                    positionX:triggerPositionX,
-                    positionY:triggerPositionY
-
-                }
-            })
-            console.log("reached here 3")
-            await prisma.workflow.update({
-                where:{
-                    id:workflowId
+        const workflow = await prisma.$transaction(async (tx) => {
+           const createdWorkflow = await tx.workflow.create({
+                data: {
+                    id: workflowId,
+                    userId,
+                    triggerId: '',
+                    actions: {
+                        create: actionsInput.map((action, index) => ({
+                            availableActionId: action.availableActionId,
+                            sortingOrder: index,
+                            metadata: action.actionMetadata,
+                            positionX: action.positionX,
+                            positionY: action.positionY,
+                        })),
+                    },
                 },
-                data:{
-                    triggerId:trigger.id
-                }
-            })
-            console.log("reached here 4")
-            await prisma.edge.createMany({
-                data: simplifiedEdges.map((x:any, index:any) => ({
-                    id: x.id,
-                    workflowId: workflowId,
-                    sourceNodeId: x.source,
-                    targetNodeId: x.target,
-                }))
+                include: { actions: true },  // Important to get action IDs
             });
 
-            return workflow
-        })
-        res.status(200).json({
-            message: "Workflow created successfully",
-            workflow
-        })
-    }catch(err){
-        console.log(err)
-        res.status(500).json({
-            message: "Error creating workflow",
-            error: err,
-           
+            const trigger = await tx.trigger.create({
+                data: {
+                    workflowId: workflowId,
+                    availableTriggersId: triggerNodeId,
+                    metadata: triggerMetadata,
+                    positionX: triggerPositionX,
+                    positionY: triggerPositionY,
+                },
+            });
 
-        })
+            await tx.workflow.update({
+                where: { id: workflowId },
+                data: { triggerId: trigger.id },
+            });
+
+            await tx.edge.createMany({
+                data: simplifiedEdges.map((edge: any) => ({
+                    workflowId: workflowId,
+                    sourceNodeId: edge.source,
+                    targetNodeId: edge.target,
+                })),
+            });
+
+            // Correct reference to createdWorkflow.actions, NOT workflow.actions
+            for (const subnode of subnodesInput) {
+                const action = actionsInput.find(a => a.nodeId === subnode.parentNodeId);
+
+                if (action) {
+                    const createdAction = createdWorkflow.actions.find(
+                        (a) => a.availableActionId === action.availableActionId
+                    );
+
+                    if (createdAction) {
+                        await tx.subnodesActions.create({
+                            data: {
+                                id: subnode.availableSubnodeId,
+                                actionId: createdAction.id,
+                                metadata: subnode.subnodeMetadata,
+                                positionX: subnode.positionX,
+                                positionY: subnode.positionY,
+                            },
+                        });
+                    } else {
+                        console.error('No created action matched:', {
+                            action,
+                            workflowActions: createdWorkflow.actions,
+                        });
+                        throw new Error('Matching created Action not found');
+                    }
+                } else {
+                    console.error(
+                        'Subnode missing parent action:',
+                        subnode,
+                        'Available actions:',
+                        actionsInput
+                    );
+                    throw new Error('Parent action node not found for subnode');
+                }
+            }
+
+            return createdWorkflow;
+
+        });
+
+        res.status(200).json({
+            message: 'Workflow created successfully',
+            workflow,
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({
+            message: 'Error creating workflow',
+            error: err,
+        });
     }
-}        
+};
 
 export const getAllWorkflows = async (req: Request, res: Response) => {
     try{
@@ -162,7 +191,6 @@ export const getWorkflowById = async (req: Request, res: Response) => {
                     include:{
                         type:true
                     }
-                    
                 }
             }
         })

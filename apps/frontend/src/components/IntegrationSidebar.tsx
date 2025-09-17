@@ -3,8 +3,6 @@ import { X, Search, Send, MessageCircle,BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { BACKEND_URL } from '@/lib/config';
-import axios from 'axios';
 
 interface IntegrationSidebarProps {
   isOpen: boolean;

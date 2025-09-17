@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -12,6 +12,8 @@ import {
   Node,
   BackgroundVariant,
 } from '@xyflow/react';
+import { workflowId } from '@/lib/config';
+import { v4 as uuidv4 } from 'uuid';
 import '@xyflow/react/dist/style.css';
 import { Plus, Webhook, Bot, Clock, Send, X, ChevronDown, BrainCircuit, MessageCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -48,8 +50,8 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
 
   const integrationActionDataRef = useRef<Record<string, any>>({});
   const [selectedIntegrationNodeId, setSelectedIntegrationNodeId] = useState<string | null>(null);
-  const workflowId = crypto.randomUUID() as string
-
+  
+   console.log(workflowId,"this is workflowId");
   const onConnect = useCallback( //Automatically adds an edge when the user connects two nodes in the UI
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
     [setEdges]
@@ -149,10 +151,10 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
 
 
   setNodes([webhookNode, addButtonNode]);
-  
+  const edgeId = crypto.randomUUID() as string
   // Connect webhook to add button
   const newEdge: Edge = {
-    id: 'webhook-to-add',
+    id:edgeId ,
     source: 'webhook-1',
     target: 'add-next',
     style: { stroke: 'hsl(var(--muted-foreground))' },
@@ -184,8 +186,6 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
     }
   }
 const handleIntegrationSelect = (integration: string) => {
-  
-
   const currentAddNode = nodes.find(node => node.id === selectedNodeId);
   if (!currentAddNode) return;
 
@@ -201,8 +201,51 @@ const handleIntegrationSelect = (integration: string) => {
   const oldEdge = edges.find(edge => edge.target === selectedNodeId);
 
   const isAIAgent = integration === 'AI-Agents';
+  const isChatModelIntegration = integration === 'OpenAI' || integration === 'Gemini' || integration === 'Ollama';
+  const isToolIntegration = ['Add', 'Substract', 'Multiply'].includes(integration);
 
-  const integrationNode: Node = {
+  let node: Node;
+
+  if (isChatModelIntegration || isToolIntegration) {
+    node = {
+      id: integrationNodeId,
+      type: 'subnode',
+      position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
+      data: {
+        label: (
+          <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
+            <div className="w-5 h-5 rounded flex items-center justify-center">
+              {/* No specific icon for ChatModel or Tool */}
+            </div>
+            <div>
+              <div className="font-medium text-xs text-black">
+                {isChatModelIntegration && `${integration} Model`}
+                {isToolIntegration && `${integration} Tool`}
+              </div>
+            </div>
+            {/* No delete button for these special integrations */}
+          </div>
+        ),
+        prevNodeId: oldEdge?.source || null,
+        nextNodeId: null,  // Disable Add button
+        subnodeNodeId: integration,
+        parentActionNodeId : oldEdge.source,
+        metadata: {
+          integrationType: integration,
+          createdAt: new Date().toISOString(),
+        },
+      },
+      style: {
+        background: '#e5e7eb',
+        border: '1px solid #4a5568',
+        borderRadius: '8px',
+        fontSize: '12px',
+        width: '150px',
+        height: '50px',
+      },
+    };
+  } else {
+  node = {
     id: integrationNodeId,
     type: 'action',
     position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
@@ -216,9 +259,7 @@ const handleIntegrationSelect = (integration: string) => {
           </div>
           <div>
             <div className="font-medium text-xs text-black">
-              {integration === 'telegram' && 'Telegram'}
-              {integration === 'resend' && 'Resend'}
-              {integration === 'AI-Agents' && 'AI Agents'}
+              {integration}
             </div>
           </div>
           <button
@@ -232,7 +273,7 @@ const handleIntegrationSelect = (integration: string) => {
       ),
       prevNodeId: oldEdge?.source || null,
       nextNodeId: isAIAgent ? null : newAddNodeId,
-      actionNodeId:integration,
+      actionNodeId: integration,
       metadata: {
         integrationType: integration,
         createdAt: new Date().toISOString(),
@@ -247,6 +288,9 @@ const handleIntegrationSelect = (integration: string) => {
       height: isAIAgent ? '50px' : '30px',
     },
   };
+}
+
+const integrationNode = node;
 
   const newNodes: Node[] = [integrationNode];
   const newEdges: Edge[] = [];
@@ -301,46 +345,48 @@ const handleIntegrationSelect = (integration: string) => {
     }
   } else {
     // Add a single "Add Next" button for telegram or resend
-    const addNode: Node = {
-      id: newAddNodeId,
-      type: 'default',
-      position: {
-        x: currentAddNode.position.x + 200,
-        y: currentAddNode.position.y + 120,
-      },
-      data: {
-        label: (
-          <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
-            <div
-              className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId, 'default'); }}
-            >
-              <Plus className="w-4 h-4 text-gray-600" />
+   if (!isChatModelIntegration && !isToolIntegration) {
+      const addNode: Node = {
+        id: newAddNodeId,
+        type: 'default',
+        position: {
+          x: currentAddNode.position.x + 200,
+          y: currentAddNode.position.y + 120,
+        },
+        data: {
+          label: (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+              <div
+                className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId, 'default'); }}
+              >
+                <Plus className="w-4 h-4 text-gray-600" />
+              </div>
             </div>
-          </div>
-        ),
-        prevNodeId: integrationNodeId,
-        nextNodeId: null,
-      },
-      style: {
-        background: '#e5e7eb',
-        border: 'none',
-        borderRadius: '8px',
-        width: '40px',
-        height: '40px',
-      },
-    };
+          ),
+          prevNodeId: integrationNodeId,
+          nextNodeId: null,
+        },
+        style: {
+          background: '#e5e7eb',
+          border: 'none',
+          borderRadius: '8px',
+          width: '40px',
+          height: '40px',
+        },
+      };
 
-    newNodes.push(addNode);
+      newNodes.push(addNode);
 
-    newEdges.push({
-      id: `${integrationNodeId}-to-${newAddNodeId}`,
-      source: integrationNodeId,
-      target: newAddNodeId,
-      label: '',
-      style: { stroke: 'hsl(var(--muted-foreground))' },
-    });
+      newEdges.push({
+        id: `${integrationNodeId}-to-${newAddNodeId}`,
+        source: integrationNodeId,
+        target: newAddNodeId,
+        label: '',
+        style: { stroke: 'hsl(var(--muted-foreground))' },
+      });
+    }
   }
 
   // Link previous node to the integration node
@@ -471,17 +517,17 @@ const handleIntegrationSelect = (integration: string) => {
     console.log("save workflow");
 
     try{
-
+      const token = localStorage.getItem('token');
       const response = await axios.post(`${BACKEND_URL}/workflow/create`,
         {
           nodes:enrichedNodes,
           edges,
           workflowId,
-          userId:"580c58be-dce9-412d-bad2-429dcb09df89"
+         
         },
         {
           headers: {
-            'Content-Type': 'application/json',
+            'Authorization': ` ${token}`
         }
         
       })

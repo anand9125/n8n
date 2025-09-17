@@ -43,10 +43,7 @@ const Instance = () => {
   
   <div className="flex-1 flex justify-center">
     <div className="w-full max-w-7xl px-4">
-   <div className="bg-gray-200">Hiiiiiii</div>
       
-
-
       {/* Main Content */}
       <main className=" overflow-hidden">
         <div className="p-6 ">

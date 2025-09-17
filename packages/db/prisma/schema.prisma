@@ -47,6 +47,7 @@ model Trigger {
   positionY           Float
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
+ 
 }
 
 model AvailableTriggers {
@@ -70,6 +71,7 @@ model Action {
   positionY Float
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+  subnodes            subnodesActions[]
 }
 
 model AvailableAction {
@@ -79,6 +81,7 @@ model AvailableAction {
   actions    Action[]   // Available actions catalog
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+  
 }
 
 model WorkflowRun {         //Every time a Zap is triggered, a ZapRun record is created.
@@ -130,4 +133,13 @@ model Edge {
   workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
   sourceNodeId String
   targetNodeId String
+}
+
+model subnodesActions{
+  id           String  
+  actionId    String     @unique
+  action      Action  @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  metadata     Json
+  positionX    Float
+  positionY    Float
 }

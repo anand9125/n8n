@@ -6,6 +6,7 @@ const prisma = new PrismaClient();
 
 export const userSignup = async (req: Request, res: Response) => { 
     try{
+        console.log(req.body)
         const {email,password,name} = req.body;
         const User = await prisma.user.findUnique({
             where:{
@@ -20,7 +21,6 @@ export const userSignup = async (req: Request, res: Response) => {
         }
         const user = await prisma.user.create({
             data:{
-               
                 email,
                 password,
                 name
@@ -54,7 +54,7 @@ export const userSignin = async (req: Request, res: Response) => {
             return
         }
         if(user.password === password){
-            const token = jwt.sign({id:user.id},JWT_SECRET);
+            const token = jwt.sign({userId:user.id},JWT_SECRET);
             res.status(200).json({
                 message: "User logged in successfully",
                 user,

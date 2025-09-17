@@ -8,6 +8,8 @@ import Instance from "./pages/Instance";
 import NotFound from "./pages/NotFound";
 import Workflow from "./pages/Workflow";
 import Personal from "./pages/Personal";
+import Signup from "./pages/Signup";
+import SigninPage from "./pages/LoginPage";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -17,9 +19,10 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          <Route path= "/signup" element={<Signup/>}></Route>
+          <Route path= "/signin" element={<SigninPage/>}></Route>
           <Route path="/" element={<Index />} />
           <Route path="/instance" element={<Instance />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
           <Route path="/workflow" element={<Workflow/>}></Route>
           <Route path="/instance/personal" element={<Personal/>}></Route>

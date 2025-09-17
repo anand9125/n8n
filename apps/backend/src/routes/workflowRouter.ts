@@ -1,17 +1,17 @@
 import { Router } from "express";
 import { Request,Response } from "express";
 import { createWorkflow, getAllWorkflows, getWorkflowById, updateWorkflow } from "../controller/workflowRouter";
-import { userMiddlewares } from "../middlewares/userMiddlewares";
+import { userMiddleware } from "../middlewares/userMiddlewares";
 
 const router = Router()
 
-router.post("/create",createWorkflow)
+router.post("/create",userMiddleware,createWorkflow)
 
-router.get("/",userMiddlewares,getAllWorkflows)
+router.get("/",userMiddleware,getAllWorkflows)
 
-router.get("/:id",userMiddlewares,getWorkflowById)
+router.get("/:id",userMiddleware,getWorkflowById)
 
-router.put("/:id",userMiddlewares,updateWorkflow)
+router.put("/:id",userMiddleware,updateWorkflow)
 
 export const workflowRouter = router
 
