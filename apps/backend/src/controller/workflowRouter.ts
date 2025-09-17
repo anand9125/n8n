@@ -5,51 +5,129 @@ const prisma = new PrismaClient();
 
 export const createWorkflow = async (req: Request, res: Response) => {
     try{
-        const parseData = workflowSchema.safeParse(req.body);
-            if(!parseData.success){
-            res.status(400).json({message:"Invalid data"});
-            return;
-        } 
-        const zapId = await prisma.$transaction(async(tx)=>{
+        console.log("some one hit me");
+        const { nodes, edges, workflowId, userId } = req.body;
+        let triggerNodeId = "";
+        let triggerMetadata = {};
+        let triggerPositionX = 0;
+        let triggerPositionY = 0;
+        console.log("reached here 1")
+
+        const actions: Array<{
+            availableActionId: string;
+            actionMetadata: any;
+            positionX: number;
+            positionY: number;
+        }> = [];
+        const edge:Array<{
+          id: string;
+          source: string;
+          target: string;
+        }> = [];
+        console.log("reached here 5")
+
+        nodes.forEach((node: any) => {
+            if (node.type === "trigger") {
+            triggerNodeId = node.data.triggerNodeId;
+            triggerMetadata = node.data.metadata;
+            triggerPositionX = node.position.x;
+            triggerPositionY = node.position.y;
+            }
+
+            if (node.type === "action") {
+            actions.push({
+                availableActionId: node.data.actionNodeId,
+                actionMetadata: node.data.metadata,
+                positionX: node.position.x,
+                positionY: node.position.y,
+            });
+            }
+        });
+        console.log("reached here 6")
+        const simplifiedEdges = edges.map((edge: any) => ({
+            id: edge.id,
+            source: edge.source,
+            target: edge.target,
+        }));
+
+        console.log("reached here")
+        console.log(simplifiedEdges)
+        console.log(workflowId)
+        console.log(userId)
+        console.log(triggerNodeId)
+        console.log(triggerMetadata)
+        console.log(triggerPositionX)
+        console.log(triggerPositionY)   
+        console.log(actions)
+
+
+        const workflow = await prisma.$transaction(async(tx)=>{
+            console.log("reached here 7")
+                        console.log("workflowId:", workflowId);
+            console.log("userId:", userId);
+            console.log("actions array:", actions);
+
             const workflow = await prisma.workflow.create({
                 data:{
-                    userId:parseData.data.userId,
+                    id:workflowId,
+                    userId:userId,
                     triggerId:"",
                     actions:{  
-                        create:parseData.data.actions.map((x,index)=>({  //this refer arrays of actions objects
+                        create:actions.map((x,index)=>({  //this refer arrays of actions objects
                             //the map function itrate over each element(x) and give the current indexes to
                             availableActionId:x.availableActionId,
                             sortingOrder:index,
-                            metadata:x.actionMetadata
+                            metadata:x.actionMetadata,
+                            positionX:x.positionX,
+                            positionY:x.positionY
+
                         }))
                     }    
                 }  
             })
+            console.log("reached here 2")
             const trigger = await prisma.trigger.create({
                 data:{
-                    availableTriggersId:parseData.data.avaialbleTriggersId,
-                    workflowId:workflow.id,
-                    metadata:parseData.data.triggerMetadata
+                    workflowId:workflowId,
+                    availableTriggersId:triggerNodeId,
+                    metadata:triggerMetadata,
+                    positionX:triggerPositionX,
+                    positionY:triggerPositionY
+
                 }
             })
+            console.log("reached here 3")
             await prisma.workflow.update({
                 where:{
-                    id:workflow.id
+                    id:workflowId
                 },
                 data:{
                     triggerId:trigger.id
                 }
             })
-            return workflow.id
+            console.log("reached here 4")
+            await prisma.edge.createMany({
+                data: simplifiedEdges.map((x:any, index:any) => ({
+                    id: x.id,
+                    workflowId: workflowId,
+                    sourceNodeId: x.source,
+                    targetNodeId: x.target,
+                }))
+            });
+
+            return workflow
         })
         res.status(200).json({
             message: "Workflow created successfully",
-            workflowId:zapId
+            workflow
         })
     }catch(err){
+        console.log(err)
         res.status(500).json({
             message: "Error creating workflow",
-            error: err
+            error: err,
+           
+
         })
     }
 }        

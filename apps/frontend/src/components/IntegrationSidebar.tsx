@@ -1,8 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { X, Search, Send, MessageCircle,BrainCircuit } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { BACKEND_URL } from '@/lib/config';
+import axios from 'axios';
 
 interface IntegrationSidebarProps {
   isOpen: boolean;
@@ -37,6 +39,7 @@ export const IntegrationSidebar: React.FC<IntegrationSidebarProps> = ({
       description: 'Build autonomous agents summarize or seacrch docoment,etc',
     },
   ];
+
 
   return (
     <div className="w-96 h-full bg-background border-l border-border overflow-y-auto">

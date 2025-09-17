@@ -4,9 +4,10 @@ import {PrismaClient} from "@prisma/client";
 const prisma = new PrismaClient();
 export const createAvailaAction = async (req: Request, res: Response) => {
     try{
-        const {name,image} = req.body;
+        const {name,image,id} = req.body;
         const action = await prisma.availableAction.create({
             data:{
+                id,
                 name,
                 image
             }

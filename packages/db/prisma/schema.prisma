@@ -24,7 +24,7 @@ model User {
 }
 
 model Workflow {
-  id            String     @id @default(uuid())
+  id            String     @id
   triggerId     String
   userId       String
   user         User       @relation(fields: [userId], references: [id])
@@ -33,21 +33,24 @@ model Workflow {
   workFlowRuns WorkflowRun[]   // Track executions
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+  edges        Edge[]
 }
 
 model Trigger {
   id                  String             @id @default(uuid())
-  workflowId               String             @unique
+  workflowId          String             @unique
   availableTriggersId String
   metadata            Json               @default("{}")
   type                AvailableTriggers  @relation(fields: [availableTriggersId], references: [id])
   workflow            Workflow           @relation(fields: [workflowId], references: [id])
+  positionX           Float
+  positionY           Float
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 }
 
 model AvailableTriggers {
-  id         String    @id @default(uuid())
+  id         String    @id 
   name       String
   image      String?
   triggers   Trigger[]   // Available Triggers catalog
@@ -63,12 +66,14 @@ model Action {
   availableActionId String
   type             AvailableAction   @relation(fields: [availableActionId], references: [id])
   sortingOrder      Int              @default(0)
+  positionX         Float
+  positionY Float
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
 }
 
 model AvailableAction {
-  id         String   @id @default(uuid())
+  id         String   @id
   name       String
   image      String?
   actions    Action[]   // Available actions catalog
@@ -118,4 +123,11 @@ model Credentials {
   description String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+}
+model Edge {
+  id           String   @id @default(uuid())
+  workflowId   String
+  workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  sourceNodeId String
+  targetNodeId String
 }

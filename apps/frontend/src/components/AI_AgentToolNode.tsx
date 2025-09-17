@@ -4,13 +4,13 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
-interface  AIAgentsNodeSidebarProps {
+interface AIAgentsToolNodeSidebarProps {
   isOpen: boolean;
   onClose: () => void;
   onIntegrationSelect: (integration: string) => void;
 }
 
-export const AIAgentsNodeSidebar: React.FC< AIAgentsNodeSidebarProps> = ({
+export const AIAgentsToolNodeSidebar: React.FC< AIAgentsToolNodeSidebarProps> = ({
   isOpen,
   onClose,
   onIntegrationSelect,

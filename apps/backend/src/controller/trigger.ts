@@ -4,9 +4,10 @@ import {PrismaClient} from "@prisma/client";
 const prisma = new PrismaClient();
 export const createAvailableTrigger = async (req: Request, res: Response) => {
     try{
-        const {name,image} = req.body;
+        const {name,image,id} = req.body;
         const trigger = await prisma.availableTriggers.create({
             data:{
+                id,
                 name,
                 image
             }

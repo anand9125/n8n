@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   ReactFlow,
   MiniMap,
@@ -23,7 +23,8 @@ import { Button } from './ui/button';
 import axios from 'axios';
 import { BACKEND_URL } from '@/lib/config';
 import { ActionDailogs } from './ActionsDialogs';
-import { AIAgentsNodeSidebar } from './AI-AgentsNodeSidebar';
+import { AIAgentChatModelNodeSidebar } from './AI_AgentChatModel';
+import { AIAgentsToolNodeSidebar } from './AI_AgentToolNode';
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
@@ -38,12 +39,16 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
   const [showTriggerSidebar, setShowTriggerSidebar] = useState(false);
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [showIntegrationSidebar, setShowIntegrationSidebar] = useState(false);
-  const[showAIAgentsNodeSidebar,setShowAIAgentsNodeSidebar] = useState(false);
+  const[showAIAgentsToolNodeSidebar,setShowAIAgentsToolNodeSidebar] = useState(false);
+  const[showAIAgentsChatModelNodeSidebar,setShowAIAgentsChatModelNodeSidebar] = useState(false);
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);  //track the currently selected node
-  const[title,setTitle] = useState("My workflow");
+  const[workflowTitle,setWorkflowTitle] = useState("My workflow");
   const [showActionDialog, setShowActionDialog] = useState(false);
-  const[actionData,setActionData] = useState({});
+
+  const integrationActionDataRef = useRef<Record<string, any>>({});
+  const [selectedIntegrationNodeId, setSelectedIntegrationNodeId] = useState<string | null>(null);
+  const workflowId = crypto.randomUUID() as string
 
   const onConnect = useCallback( //Automatically adds an edge when the user connects two nodes in the UI
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -69,36 +74,43 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
     setShowWebhookDialog(false);
     setWebhookConfigured(true);
     console.log(webhookData,"this is webhookdata");
+    const webhookId = "webhook-1";
+     
     
+    integrationActionDataRef.current[webhookId] =webhookData;
+  
       // Create webhook node
-  const webhookNode: Node = {
-    id: 'webhook-1',
-    type: 'default',
-    position: { x: 400, y: 200 },
-    data: { 
-      label: (
-        <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
-          {/* Webhook Icon */}
-          <div className="w-5 h-5 rounded  flex items-center justify-center">
-            <Webhook className="w-3 h-3 text-orange-400" />
-          </div>
+    const webhookNode: Node = {
+      id: webhookId,
+      type: 'trigger',
+      position: { x: 400, y: 200 },
+      data: { 
+        label: (
+          <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
+            {/* Webhook Icon */}
+            <div className="w-5 h-5 rounded  flex items-center justify-center">
+              <Webhook className="w-3 h-3 text-orange-400" />
+            </div>
 
-          {/* Webhook Text */}
-          <div className="font-medium text-xs text-black ">
-            Webhook
-          </div>
+            {/* Webhook Text */}
+            <div className="font-medium text-xs text-black ">
+              Webhook
+            </div>
 
-          {/* Delete Button - Positioned Top Right */}
-          <button
-            className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); handleDeleteNode('webhook-1'); }}
-          >
-            <X className="w-2 h-2" />
-          </button>
-        </div>
-      )
+            {/* Delete Button - Positioned Top Right */}
+            <button
+              className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); handleDeleteNode('webhook-1'); }}
+            >
+              <X className="w-2 h-2" />
+            </button>
+          </div>
+        ),
+        triggerNodeId:webhookId
+    
     },
+
     style: {
       background: '#e5e7eb',  // Tailwind's bg-gray-200
       border: '1px solid #4a5568',
@@ -154,10 +166,10 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
     console.log(edgeLabel);
     console.log(nodeId);
     if(edgeLabel === "Chat Models"){
-      setShowAIAgentsNodeSidebar(true);
+      setShowAIAgentsChatModelNodeSidebar(true);
     }
     else if(edgeLabel === "Tools"){
-      setShowAIAgentsNodeSidebar(true);
+      setShowAIAgentsToolNodeSidebar(true);
     }
     else{
       setShowIntegrationSidebar(true);
@@ -166,86 +178,134 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
    
   const handleActionSave = (actionData: any) => { 
     setShowActionDialog(false);
-    setActionData(actionData);
     console.log(actionData,"this is actiondata");
+    if (selectedIntegrationNodeId) {
+    integrationActionDataRef.current[selectedIntegrationNodeId] = actionData;
+    }
   }
-  const handleIntegrationSelect = (integration: string) => {
-    setShowIntegrationSidebar(false);
-    setShowActionDialog(true);
+const handleIntegrationSelect = (integration: string) => {
+  
 
-    const currentAddNode = nodes.find(node => node.id === selectedNodeId);
-    if (!currentAddNode) return;
+  const currentAddNode = nodes.find(node => node.id === selectedNodeId);
+  if (!currentAddNode) return;
 
-    const existingIntegrationNodes = nodes.filter(node => node.id.startsWith(integration));
-    const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;
+  const existingIntegrationNodes = nodes.filter(node => node.id.startsWith(integration));
+  const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;
+  setSelectedIntegrationNodeId(integrationNodeId);
 
-    const existingAddNodes = nodes.filter(node => node.id.startsWith('add-next'));
-    const newAddNodeId = `add-next-${existingAddNodes.length + 1}`;
+  setShowIntegrationSidebar(false);
+  setShowActionDialog(true);
+  const existingAddNodes = nodes.filter(node => node.id.startsWith('add-next'));
+  const newAddNodeId = `add-next-${existingAddNodes.length + 1}`;
 
-    const oldEdge = edges.find(edge => edge.target === selectedNodeId);
+  const oldEdge = edges.find(edge => edge.target === selectedNodeId);
 
-    const isAIAgent = integration === 'AI-Agents';
+  const isAIAgent = integration === 'AI-Agents';
 
-    const integrationNode: Node = {
-      id: integrationNodeId,
-      type: 'default',
-      position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
-      data: {
-        label: (
-          <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
-            <div className="w-5 h-5 rounded flex items-center justify-center">
-              {integration === 'telegram' && <Send className="w-3 h-3 text-blue-600" />}
-              {integration === 'resend' && <Bot className="w-3 h-3 text-blue-600" />}
-              {integration === 'AI-Agents' && <BrainCircuit className="w-3 h-3 text-blue-600" />}
+  const integrationNode: Node = {
+    id: integrationNodeId,
+    type: 'action',
+    position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
+    data: {
+      label: (
+        <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
+          <div className="w-5 h-5 rounded flex items-center justify-center">
+            {integration === 'telegram' && <Send className="w-3 h-3 text-blue-600" />}
+            {integration === 'resend' && <Bot className="w-3 h-3 text-blue-600" />}
+            {integration === 'AI-Agents' && <BrainCircuit className="w-3 h-3 text-blue-600" />}
+          </div>
+          <div>
+            <div className="font-medium text-xs text-black">
+              {integration === 'telegram' && 'Telegram'}
+              {integration === 'resend' && 'Resend'}
+              {integration === 'AI-Agents' && 'AI Agents'}
             </div>
-            <div>
-              <div className="font-medium text-xs text-black">
-                {integration === 'telegram' && 'Telegram'}
-                {integration === 'resend' && 'Resend'}
-                {integration === 'AI-Agents' && 'AI Agents'}
+          </div>
+          <button
+            className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={(e) => { e.stopPropagation(); handleDeleteNode(integrationNodeId); }}
+          >
+            <X className="w-2 h-2" />
+          </button>
+        </div>
+      ),
+      prevNodeId: oldEdge?.source || null,
+      nextNodeId: isAIAgent ? null : newAddNodeId,
+      actionNodeId:integration,
+      metadata: {
+        integrationType: integration,
+        createdAt: new Date().toISOString(),
+      },
+    },
+    style: {
+      background: '#e5e7eb',
+      border: '1px solid #4a5568',
+      borderRadius: '8px',
+      fontSize: '12px',
+      width: isAIAgent ? '150px' : '100px',
+      height: isAIAgent ? '50px' : '30px',
+    },
+  };
+
+  const newNodes: Node[] = [integrationNode];
+  const newEdges: Edge[] = [];
+
+  if (isAIAgent) {
+    // Add multiple Add buttons for AI-Agents
+    const edgeLabels = ['Chat Models', '', 'Tools'];
+
+    for (let i = 0; i < 3; i++) {
+      const addNodeId = `add-next-${Date.now()}-${i}`;
+
+      const addNode: Node = {
+        id: addNodeId,
+        type: 'default',
+        position: {
+          x: currentAddNode.position.x + i * 200,
+          y: currentAddNode.position.y + 120,
+        },
+        data: {
+          label: (
+            <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+              <div
+                className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+                onMouseDown={(e) => e.stopPropagation()}
+                onClick={(e) => { e.stopPropagation(); handleAddNextStep(addNodeId, edgeLabels[i]); }}
+              >
+                <Plus className="w-4 h-4 text-gray-600" />
               </div>
             </div>
-            <button
-              className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
-              onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); handleDeleteNode(integrationNodeId); }}
-            >
-              <X className="w-2 h-2" />
-            </button>
-          </div>
-        ),
-        prevNodeId: oldEdge?.source || null,
-        nextNodeId: isAIAgent ? null : newAddNodeId,
-        metadata: {
-          integrationType: integration,
-          createdAt: new Date().toISOString(),
+          ),
+          prevNodeId: integrationNodeId,
+          nextNodeId: null,
         },
-      },
-      style: {
-        background: '#e5e7eb',
-        border: '1px solid #4a5568',
-        borderRadius: '8px',
-        fontSize: '12px',
-        width: isAIAgent ? '150px' : '100px',
-        height: isAIAgent ? '50px' : '30px',
-      },
-    };
+        style: {
+          background: '#e5e7eb',
+          border: 'none',
+          borderRadius: '8px',
+          width: '40px',
+          height: '40px',
+        },
+      };
 
-    const newNodes: Node[] = [integrationNode];
-    const newEdges: Edge[] = [];
+      newNodes.push(addNode);
 
-    // Create multiple AddNode buttons if AI-Agents
-if (integration === "AI-Agents") {
-  const edgeLabels = ['Chat Models', '', 'Tools'];
-   //Instead of always calling the same handleAddNextStep(addNodeId) on every click, we can pass contextual information
-  for (let i = 0; i < 3; i++) {
-    const addNodeId = `add-next-${Date.now()}-${i}`;
-
+      newEdges.push({
+        id: `${integrationNodeId}-to-${addNodeId}`,
+        source: integrationNodeId,
+        target: addNodeId,
+        label: edgeLabels[i],
+        style: { stroke: 'hsl(var(--muted-foreground))' },
+      });
+    }
+  } else {
+    // Add a single "Add Next" button for telegram or resend
     const addNode: Node = {
-      id: addNodeId,
+      id: newAddNodeId,
       type: 'default',
       position: {
-        x: currentAddNode.position.x + i * 200,
+        x: currentAddNode.position.x + 200,
         y: currentAddNode.position.y + 120,
       },
       data: {
@@ -254,7 +314,7 @@ if (integration === "AI-Agents") {
             <div
               className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
               onMouseDown={(e) => e.stopPropagation()}
-              onClick={(e) => { e.stopPropagation(); handleAddNextStep(addNodeId,edgeLabels[i]) }}  //Update your edge labels to include their action type. now In the onClick handler, pass the type of action (label).
+              onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId, 'default'); }}
             >
               <Plus className="w-4 h-4 text-gray-600" />
             </div>
@@ -275,37 +335,35 @@ if (integration === "AI-Agents") {
     newNodes.push(addNode);
 
     newEdges.push({
-      id: `${integrationNodeId}-to-${addNodeId}`,
+      id: `${integrationNodeId}-to-${newAddNodeId}`,
       source: integrationNodeId,
-      target: addNodeId,
-      label: edgeLabels[i],  // Edge carries the label Chat Models / Tools / empty  
+      target: newAddNodeId,
+      label: '',
       style: { stroke: 'hsl(var(--muted-foreground))' },
     });
   }
-}
 
-
-
-    // Add connection from oldEdge.source to integrationNode
-    if (oldEdge) {
-      newEdges.unshift({
-        id: `${oldEdge.source}-to-${integrationNodeId}`,
-        source: oldEdge.source,
-        target: integrationNodeId,
-        style: { stroke: 'hsl(var(--muted-foreground))' },
-      });
-    }
-
-    setNodes(prevNodes => {
-      const filteredNodes = prevNodes.filter(node => node.id !== selectedNodeId);
-      return [...filteredNodes, ...newNodes];
+  // Link previous node to the integration node
+  if (oldEdge) {
+    newEdges.unshift({
+      id: `${oldEdge.source}-to-${integrationNodeId}`,
+      source: oldEdge.source,
+      target: integrationNodeId,
+      style: { stroke: 'hsl(var(--muted-foreground))' },
     });
+  }
 
-    setEdges(prevEdges => {
-      const filteredEdges = prevEdges.filter(edge => edge.target !== selectedNodeId);
-      return [...filteredEdges, ...newEdges];
-    });
-  };
+  setNodes(prevNodes => {
+    const filteredNodes = prevNodes.filter(node => node.id !== selectedNodeId);
+    return [...filteredNodes, ...newNodes];
+  });
+
+  setEdges(prevEdges => {
+    const filteredEdges = prevEdges.filter(edge => edge.target !== selectedNodeId);
+    return [...filteredEdges, ...newEdges];
+  });
+};
+
 
 // When the user clicks the delete (X) button on a node, the goal is to:
 // Remove the node from the workflow.
@@ -395,24 +453,39 @@ if (integration === "AI-Agents") {
   );
 
   const handleSaveWorkflow = async() => {
-
-    const payload = {
-      title: title,
-
-      
-    }
+    const enrichedNodes = nodes.map(node => {
+      if(integrationActionDataRef.current[node.id]){
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            metadata: {
+              actionData: integrationActionDataRef.current[node.id]
+            }
+          }
+        };
+      }
+      return node;
+    });
 
     console.log("save workflow");
-    const id = localStorage.getItem("workflowId");
+
     try{
-      const response = await axios.post(`${BACKEND_URL}/workflows${id}`,
-        payload,
+
+      const response = await axios.post(`${BACKEND_URL}/workflow/create`,
+        {
+          nodes:enrichedNodes,
+          edges,
+          workflowId,
+          userId:"580c58be-dce9-412d-bad2-429dcb09df89"
+        },
         {
           headers: {
             'Content-Type': 'application/json',
         }
-      }
-      )
+        
+      })
+      console.log(response.data);
 
     }catch(err){
       console.log(err);
@@ -472,15 +545,22 @@ if (integration === "AI-Agents") {
                 onClose={() => setShowIntegrationSidebar(false)}
                 onIntegrationSelect={handleIntegrationSelect}
               />
-              < AIAgentsNodeSidebar
-                isOpen={showAIAgentsNodeSidebar}
-                onClose={() => setShowAIAgentsNodeSidebar(false)}
+              < AIAgentChatModelNodeSidebar
+                isOpen={showAIAgentsChatModelNodeSidebar}
+                onClose={() => setShowAIAgentsChatModelNodeSidebar(false)}
                 onIntegrationSelect={handleIntegrationSelect}
               />
+              < AIAgentsToolNodeSidebar
+                isOpen={showAIAgentsToolNodeSidebar}
+                onClose={() => setShowAIAgentsToolNodeSidebar(false)}
+                onIntegrationSelect={handleIntegrationSelect}
+              />
+  
             </div>
 
             {/* Dialogs */}
             <WebhookDialog
+              workflowId={workflowId}
               isOpen={showWebhookDialog}
               onClose={() => setShowWebhookDialog(false)}
               onSave={handleWebhookSave}

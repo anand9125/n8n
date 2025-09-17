@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Response ,Request} from "express";
 import cors from "cors";
 import { userRouter } from "./routes/userRouter";
 import { workflowRouter } from "./routes/workflowRouter";
@@ -20,6 +20,31 @@ app.use("/api/v1/avaialbleTriggers",triggerRouter)
 app.use("/api/v1/avaialbleActions",actionRouter)
 
 app.use("/api/v1/credentials",credentialRouter)
+
+app.post("/api/v1/test", (req: Request, res: Response) => {
+  const { nodes, edges, workflowId, userId } = req.body;
+
+  let triggerNodeId = "";
+  let triggerMetadata = {};
+  let triggerPositionX = 0;
+  let triggerPositionY = 0;
+
+  const actions: Array<{
+    availableActionId: string;
+    actionMetadata: any;
+    positionX: number;
+    positionY: number;
+  }> = [];
+
+    edges.forEach((edge: any) => {
+      console.log(edge);
+
+    })
+
+   // console.log(workflowData, "==> extracted workflow data");
+});
+
+
 
 
 

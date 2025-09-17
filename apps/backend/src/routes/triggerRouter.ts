@@ -4,7 +4,7 @@ import { adminMiddlewares } from "../middlewares/adminMiddlewares";
 
 const router = Router()
 
-router.post("/create",adminMiddlewares,createAvailableTrigger);
+router.post("/create",createAvailableTrigger);
 
 router.get("/:id",getAvailableTriggersById);
 

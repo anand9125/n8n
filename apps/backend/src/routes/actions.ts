@@ -4,7 +4,7 @@ import { adminMiddlewares } from "../middlewares/adminMiddlewares";
 
 const router = Router()
 
-router.post("/create",adminMiddlewares,createAvailaAction);
+router.post("/create",createAvailaAction);
 
 router.get("/:id",getAvailableActionById);
 

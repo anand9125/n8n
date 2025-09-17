@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Badge } from '@/components/ui/badge';
 
 interface WebhookDialogProps {
+  workflowId: string;
   isOpen: boolean;
   onClose: () => void;
   onSave: (webhookData: any) => void;
@@ -19,12 +20,12 @@ export const WebhookDialog: React.FC<WebhookDialogProps> = ({
   onClose,
   onSave,
 }) => {
+  //Todo :we need to give  user the workflowid
   const [httpMethod, setHttpMethod] = useState('GET');
   const [path, setPath] = useState('978d3195-edce-499b-8d50-daaf31a9625c');
   const [authentication, setAuthentication] = useState('None');
   const [respond, setRespond] = useState('Immediately');
-
-  const testUrl = 'https://ananpad.app.n8n.cloud/webhook-test/';
+  const [testUrl, setTestUrl] = useState('https://test.ananpad.app.n8n.cloud/webhook/');
   const productionUrl = 'https://ananpad.app.n8n.cloud/webhook/';
 
   const handleSave = () => {
