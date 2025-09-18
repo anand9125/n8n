@@ -1,47 +1,159 @@
-import React, { useState } from 'react';
-import { ArrowLeft, Copy, Webhook } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { ArrowLeft, Send, Mail, MessageCircle, Database, Globe, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 
-interface ActionDailogsProps {
+interface ActionDialogsProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (webhookData: any) => void;
+  onSave: (actionData: any) => void;
+  selectedAction: string;
 }
 
-export const ActionDailogs: React.FC<ActionDailogsProps> = ({
+const actionConfigs = {
+  telegram: {
+    icon: Send,
+    color: 'blue',
+    title: 'Telegram Bot',
+    description: 'Send messages via Telegram Bot',
+    fields: [
+      { name: 'botToken', label: 'Bot Token', type: 'password', placeholder: 'Enter your bot token', required: true },
+      { name: 'message', label: 'Message', type: 'textarea', placeholder: 'Enter your message...', required: true },
+      { name: 'parseMode', label: 'Parse Mode', type: 'select', options: ['HTML', 'Markdown', 'None'], defaultValue: 'None' }
+    ]
+  },
+  resend: {
+    icon: Mail,
+    color: 'green',
+    title: 'Email',
+    description: 'Send email notifications',
+    fields: [
+      { name: 'resendApi', label: 'Resend_API', type: 'text', placeholder: 're_xxxxxxxxx', required: true },
+      { name: 'fromEmail', label: 'From Email', type: 'email', placeholder: 'Sender Email' ,required:true},
+      { name: 'subject', label: 'Subject', type: 'text', placeholder: 'Email subject', required: true },
+      { name: 'body', label: 'Body', type: 'textarea', placeholder: 'Email content...', required: true },
+    ]
+  }
+};
+
+export const ActionDialogs: React.FC<ActionDialogsProps> = ({
   isOpen,
   onClose,
   onSave,
+  selectedAction,
 }) => {
-  const [httpMethod, setHttpMethod] = useState('GET');
-  const [path, setPath] = useState('978d3195-edce-499b-8d50-daaf31a9625c');
-  const [authentication, setAuthentication] = useState('None');
-  const [respond, setRespond] = useState('Immediately');
+  const [formData, setFormData] = useState<Record<string, any>>({});
+  const [activeTab, setActiveTab] = useState('parameters');
 
-  const testUrl = 'https://ananpad.app.n8n.cloud/webhook-test/';
-  const productionUrl = 'https://ananpad.app.n8n.cloud/webhook/';
+  const config = actionConfigs[selectedAction as keyof typeof actionConfigs];
+  const IconComponent = config?.icon || Zap;
+
+  useEffect(() => {
+    // Initialize form data with default values
+    if (config) {
+      const initialData: Record<string, any> = {};
+      config.fields.forEach(field => {
+        if (field.defaultValue) {
+          initialData[field.name] = field.defaultValue;
+        } else {
+          initialData[field.name] = '';
+        }
+      });
+      setFormData(initialData);
+    }
+  }, [selectedAction, config]);
+
+  const handleInputChange = (fieldName: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [fieldName]: value
+    }));
+  };
 
   const handleSave = () => {
-    const webhookData = {
-      httpMethod,
-      path,
-      authentication,
-      respond,
-      testUrl: testUrl + path,
-      productionUrl: productionUrl + path,
+    const actionData = {
+      actionType: selectedAction,
+      config: formData,
+      timestamp: new Date().toISOString()
     };
-    onSave(webhookData);
+    onSave(actionData);
+    onClose(); // Close the dialog after saving
+  };
+
+  const isFormValid = () => {
+    if (!config) return false;
+    return config.fields
+      .filter(field => field.required)
+      .every(field => formData[field.name] && formData[field.name].trim() !== '');
+  };
+
+  if (!config) {
+    return (
+      <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Action not found</DialogTitle>
+          </DialogHeader>
+          <p>The selected action "{selectedAction}" is not supported.</p>
+          <Button onClick={onClose}>Close</Button>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  const renderField = (field: any) => {
+    switch (field.type) {
+      case 'textarea':
+        return (
+          <Textarea
+            id={field.name}
+            value={formData[field.name] || ''}
+            onChange={(e) => handleInputChange(field.name, e.target.value)}
+            placeholder={field.placeholder}
+            className="min-h-[100px]"
+          />
+        );
+      case 'select':
+        return (
+          <Select 
+            value={formData[field.name] || field.defaultValue} 
+            onValueChange={(value) => handleInputChange(field.name, value)}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {field.options.map((option: string) => (
+                <SelectItem key={option} value={option}>
+                  {option}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      default:
+        return (
+          <Input
+            id={field.name}
+            type={field.type}
+            value={formData[field.name] || ''}
+            onChange={(e) => handleInputChange(field.name, e.target.value)}
+            placeholder={field.placeholder}
+            className={field.type === 'password' ? 'font-mono text-sm' : ''}
+          />
+        );
+    }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-4xl h-[90vh] p-0">
+      <DialogContent className="max-w-5xl h-[90vh] p-0">
         <div className="flex h-full">
           {/* Left sidebar */}
           <div className="w-80 bg-muted/30 p-6 border-r border-border">
@@ -53,128 +165,110 @@ export const ActionDailogs: React.FC<ActionDailogsProps> = ({
             </div>
 
             <div className="bg-card rounded-lg p-4 mb-6">
-              <h3 className="font-medium mb-2">Pull in events from Webhook</h3>
-              <Button className="w-full" size="sm">
-                Listen for test event
+              <div className="flex items-center gap-3 mb-3">
+                <div className={`w-10 h-10 rounded-lg bg-${config.color}-100 flex items-center justify-center`}>
+                  <IconComponent className={`w-5 h-5 text-${config.color}-600`} />
+                </div>
+                <div>
+                  <h3 className="font-medium">{config.title}</h3>
+                  <p className="text-xs text-muted-foreground">{config.description}</p>
+                </div>
+              </div>
+              <Button className="w-full" size="sm" disabled={!isFormValid()}>
+                Test Action
               </Button>
               <p className="text-xs text-muted-foreground mt-3">
-                Once you've finished building your workflow, run it without having to click this button by using the production webhook URL. 
-                <a href="#" className="text-primary hover:underline ml-1">More info</a>
+                Configure your action settings and test the connection before saving.
+                <a href="#" className="text-primary hover:underline ml-1">Learn more</a>
               </p>
             </div>
 
-            <div className="text-xs text-muted-foreground">
-              When will this node trigger my flow?
+            <div className="space-y-2">
+              <div className="text-xs font-medium text-muted-foreground mb-2">REQUIRED FIELDS</div>
+              {config.fields
+                .filter(field => field.required)
+                .map(field => (
+                  <div key={field.name} className="flex items-center gap-2 text-xs">
+                    <div className={`w-2 h-2 rounded-full ${formData[field.name] && formData[field.name].trim() ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span className="text-muted-foreground">{field.label}</span>
+                  </div>
+                ))
+              }
             </div>
           </div>
 
           {/* Main content */}
           <div className="flex-1 flex flex-col">
             <DialogHeader className="p-6 border-b border-border">
-              <DialogTitle className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-orange-100 flex items-center justify-center">
-                  <Webhook className="w-4 h-4 text-orange-600" />
+              <DialogTitle className="flex items-center gap-3">
+                <div className={`w-8 h-8 rounded-lg bg-${config.color}-100 flex items-center justify-center`}>
+                  <IconComponent className={`w-4 h-4 text-${config.color}-600`} />
                 </div>
-                Webhook
-                <Button size="sm" className="ml-auto">
-                  Listen for test event
-                </Button>
+                {config.title}
+                <Badge variant="outline" className="ml-2">Action</Badge>
               </DialogTitle>
             </DialogHeader>
 
             <div className="flex-1 overflow-y-auto">
-              <Tabs defaultValue="parameters" className="w-full">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                 <div className="px-6 border-b border-border">
-                  <TabsList className="grid w-full grid-cols-3">
-                    <TabsTrigger value="parameters">Parameters</TabsTrigger>
-                    <TabsTrigger value="settings">Settings</TabsTrigger>
-                    <TabsTrigger value="docs">Docs</TabsTrigger>
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="parameters">Configuration</TabsTrigger>
+
                   </TabsList>
                 </div>
 
                 <TabsContent value="parameters" className="p-6 space-y-6">
-                  <div>
-                    <Label className="text-sm font-medium mb-2 block text-orange-600">
-                      Webhook URLs
-                    </Label>
-                    
-                    <div className="space-y-3">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <Badge variant="outline" className="text-xs">Production URL</Badge>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <div className="flex-1 bg-muted rounded-md p-2 text-sm font-mono text-muted-foreground break-all">
-                            {testUrl}{path}
-                          </div>
-                          <Button variant="outline" size="sm">
-                            <Copy className="w-3 h-3" />
-                          </Button>
-                        </div>
+                  <div className="grid gap-6">
+                    {config.fields.map(field => (
+                      <div key={field.name}>
+                        <Label htmlFor={field.name} className="text-sm font-medium mb-2 block">
+                          {field.label}
+                          {field.required && <span className="text-red-500 ml-1">*</span>}
+                        </Label>
+                        {renderField(field)}
+                        {field.name === 'botToken' && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Get your bot token from @BotFather on Telegram
+                          </p>
+                        )}
+                        {field.name === 'webhookUrl' && (
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Create an incoming webhook in your Slack workspace
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="http-method" className="text-sm font-medium mb-2 block">
-                      HTTP Method
-                    </Label>
-                    <Select value={httpMethod} onValueChange={setHttpMethod}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="GET">GET</SelectItem>
-                        <SelectItem value="POST">POST</SelectItem>
-                        <SelectItem value="PUT">PUT</SelectItem>
-                        <SelectItem value="DELETE">DELETE</SelectItem>
-                        <SelectItem value="PATCH">PATCH</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="path" className="text-sm font-medium mb-2 block">
-                      Path
-                    </Label>
-                    <Input
-                      id="path"
-                      value={path}
-                      onChange={(e) => setPath(e.target.value)}
-                      className="font-mono text-sm"
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="authentication" className="text-sm font-medium mb-2 block">
-                      Authentication
-                    </Label>
-                    <Select value={authentication} onValueChange={setAuthentication}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="None">None</SelectItem>
-                        <SelectItem value="Basic">Basic Auth</SelectItem>
-                        <SelectItem value="Bearer">Bearer Token</SelectItem>
-                        <SelectItem value="API Key">API Key</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-           
-          
-                </TabsContent>
-
-                <TabsContent value="settings" className="p-6">
-                  <div className="text-center text-muted-foreground">
-                    Settings content would go here
+                    ))}
                   </div>
                 </TabsContent>
 
                 <TabsContent value="docs" className="p-6">
-                  <div className="text-center text-muted-foreground">
-                    Documentation content would go here
+                  <div className="space-y-4">
+                    <h3 className="font-medium">{config.title} Integration</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {config.description}
+                    </p>
+                    <div className="bg-muted rounded-lg p-4">
+                      <h4 className="font-medium mb-2">Setup Instructions:</h4>
+                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                        {selectedAction === 'telegram' && (
+                          <>
+                            <li>Create a bot using @BotFather on Telegram</li>
+                            <li>Copy the bot token provided</li>
+                            <li>Get the chat ID where you want to send messages</li>
+                            <li>Configure the message content and formatting</li>
+                          </>
+                        )}
+                        {selectedAction === 'resned' && (
+                          <>
+                            <li>Configure your SMTP server credentials</li>
+                            <li>Set the sender and recipient email addresses</li>
+                            <li>Write your email subject and content</li>
+                            <li>Choose between plain text or HTML format</li>
+                          </>
+                        )}
+                      </ol>
+                    </div>
                   </div>
                 </TabsContent>
               </Tabs>
@@ -183,37 +277,49 @@ export const ActionDailogs: React.FC<ActionDailogsProps> = ({
             <div className="border-t border-border ">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">
-                  I wish this node would...
+                  {isFormValid() ? 'Ready to save' : 'Please fill all required fields'}
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={onClose}>
                     Cancel
                   </Button>
-                  <Button onClick={handleSave}>
-                    Save
+                  <Button onClick={handleSave} disabled={!isFormValid()}>
+                    Save Action
                   </Button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Right sidebar - Output */}
+          {/* Right sidebar - Preview */}
           <div className="w-80 bg-muted/30 border-l border-border">
             <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
-                <h3 className="font-medium">OUTPUT</h3>
+                <h3 className="font-medium">PREVIEW</h3>
                 <Button variant="ghost" size="icon">
                   <div className="w-4 h-4 border border-current" />
                 </Button>
               </div>
             </div>
-            <div className="p-6 text-center">
-              <p className="text-sm text-muted-foreground mb-2">
-                Execute this node to view data
-              </p>
-              <p className="text-xs text-muted-foreground">
-                or <a href="#" className="text-primary hover:underline">set mock data</a>
-              </p>
+            <div className="p-4 space-y-4">
+              {selectedAction === 'telegram' && formData.message && (
+                <div className="bg-card rounded-lg p-3 border">
+                  <div className="text-xs text-muted-foreground mb-1">Telegram Message Preview</div>
+                  <div className="text-sm">{formData.message}</div>
+                </div>
+              )}
+              {selectedAction === 'resend' && (formData.subject || formData.body) && (
+                <div className="bg-card rounded-lg p-3 border">
+                  <div className="text-xs text-muted-foreground mb-1">Email Preview</div>
+                  {formData.subject && <div className="font-medium text-sm mb-1">{formData.subject}</div>}
+                  {formData.body && <div className="text-sm text-muted-foreground">{formData.body}</div>}
+                </div>
+              )}
+              {!formData.message && !formData.subject && (
+                <div className="text-center text-muted-foreground text-sm">
+                  Fill in the configuration to see a preview
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -24,30 +24,33 @@ import { IntegrationSidebar } from './IntegrationSidebar';
 import { Button } from './ui/button';
 import axios from 'axios';
 import { BACKEND_URL } from '@/lib/config';
-import { ActionDailogs } from './ActionsDialogs';
+import { ActionDialogs } from './ActionsDialogs';
 import { AIAgentChatModelNodeSidebar } from './AI_AgentChatModel';
 import { AIAgentsToolNodeSidebar } from './AI_AgentToolNode';
+import {FormBuilderDialog} from './formSlidbar';
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
 
 interface WorkflowBuilderProps {
   className?: string;
+  title?: string;
 }
 
-export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) => {
+export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,title }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialEdges);
   const [showTriggerSidebar, setShowTriggerSidebar] = useState(false);
   const [showWebhookDialog, setShowWebhookDialog] = useState(false);
   const [showIntegrationSidebar, setShowIntegrationSidebar] = useState(false);
-  const[showAIAgentsToolNodeSidebar,setShowAIAgentsToolNodeSidebar] = useState(false);
-  const[showAIAgentsChatModelNodeSidebar,setShowAIAgentsChatModelNodeSidebar] = useState(false);
+  const [showAIAgentsToolNodeSidebar,setShowAIAgentsToolNodeSidebar] = useState(false);
+  const [showAIAgentsChatModelNodeSidebar,setShowAIAgentsChatModelNodeSidebar] = useState(false);
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);  //track the currently selected node
-  const[workflowTitle,setWorkflowTitle] = useState("My workflow");
+  const [workflowTitle,setWorkflowTitle] = useState("My workflow");
   const [showActionDialog, setShowActionDialog] = useState(false);
-
+  const [selectedAction, setSelectedAction] = useState<string | null>(null);
+  const [showFormBuilder,setShowFormBuilder] = useState(false);
   const integrationActionDataRef = useRef<Record<string, any>>({});
   const [selectedIntegrationNodeId, setSelectedIntegrationNodeId] = useState<string | null>(null);
   
@@ -63,24 +66,23 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
 
   const handleTriggerSelect = (triggerType: string) => { //Handles selection of a trigger type
     setShowTriggerSidebar(false);
+    console.log("Trigger selected:", triggerType);
     
     if (triggerType === 'webhook') {
       setShowWebhookDialog(true);
-    } else {
-      // Add other trigger types here
-      console.log('Selected trigger:', triggerType);
+    } else if (triggerType === 'form-builder') {
+      setShowFormBuilder(true);
+    }
+    else {
+      console.log("No trigger selected", triggerType);
     }
   };
 
   const handleWebhookSave = (webhookData: any) => {  //Closes the webhook dialog and marks webhook as configured.
     setShowWebhookDialog(false);
     setWebhookConfigured(true);
-    console.log(webhookData,"this is webhookdata");
     const webhookId = "webhook-1";
-     
-    
     integrationActionDataRef.current[webhookId] =webhookData;
-  
       // Create webhook node
     const webhookNode: Node = {
       id: webhookId,
@@ -121,33 +123,33 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className }) =
       width: '100px',   // Fixed width
       height: '30px',   // Fixed height
     },
-  };
+    };
 
-  const addButtonNode: Node = {
-    id: 'add-next',
-    type: 'default',
-    position: { x: 400, y: 320 },
-    data: {
-      label: (
-        <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
-          <div
-            className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); handleAddNextStep('add-next',""); }}
-          >
-            <Plus className="w-4 h-4 text-gray-600" />
+    const addButtonNode: Node = {
+      id: 'add-next',
+      type: 'default',
+      position: { x: 400, y: 320 },
+      data: {
+        label: (
+          <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+            <div
+              className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); handleAddNextStep('add-next',""); }}
+            >
+              <Plus className="w-4 h-4 text-gray-600" />
+            </div>
           </div>
-        </div>
-      )
-    },
-    style: {
-      background: '#e5e7eb',  // Solid background
-      border: 'none',
-      borderRadius: '8px',
-      width: '40px',
-      height: '40px',
-    },
-  };
+        )
+      },
+      style: {
+        background: '#e5e7eb',  // Solid background
+        border: 'none',
+        borderRadius: '8px',
+        width: '40px',
+        height: '40px',
+      },
+    };
 
 
   setNodes([webhookNode, addButtonNode]);
@@ -192,8 +194,9 @@ const handleIntegrationSelect = (integration: string) => {
   const existingIntegrationNodes = nodes.filter(node => node.id.startsWith(integration));
   const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;
   setSelectedIntegrationNodeId(integrationNodeId);
-
+  setSelectedAction(integration);
   setShowIntegrationSidebar(false);
+
   setShowActionDialog(true);
   const existingAddNodes = nodes.filter(node => node.id.startsWith('add-next'));
   const newAddNodeId = `add-next-${existingAddNodes.length + 1}`;
@@ -523,6 +526,7 @@ const integrationNode = node;
           nodes:enrichedNodes,
           edges,
           workflowId,
+          title,
          
         },
         {
@@ -537,6 +541,10 @@ const integrationNode = node;
       console.log(err);
     }
   }
+  const handleSave = (formNode: any) => {
+    console.log("Created form:", formNode);
+  };
+
 
   return (
         <div>
@@ -611,11 +619,17 @@ const integrationNode = node;
               onClose={() => setShowWebhookDialog(false)}
               onSave={handleWebhookSave}
             />
-            <ActionDailogs
+            <ActionDialogs
               isOpen={showActionDialog}
               onClose={() => setShowActionDialog(false)}
               onSave={handleActionSave}
+              selectedAction={selectedAction}
             />
+            <FormBuilderDialog
+              isOpen={showFormBuilder}
+              onClose={() => setShowFormBuilder(false)}
+              onSave={handleSave}
+               />
       </div>
     </div>
   );

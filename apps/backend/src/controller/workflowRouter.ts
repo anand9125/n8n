@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
 import { Request,Response } from "express";
-import { workflowSchema } from "../types/type";
 import { CustomRequest } from "../middlewares/userMiddlewares";
 const prisma = new PrismaClient();
 
@@ -8,7 +7,9 @@ const prisma = new PrismaClient();
 export const createWorkflow = async (req: CustomRequest, res: Response) => {
     try {
         const { nodes, edges, workflowId } = req.body;
+        const workflowTitle =req.body.title; 
         const userId = req?.id as string;
+        console.log(userId)
 
         let triggerNodeId = '';
         let triggerMetadata = {};
@@ -24,7 +25,7 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
         }> = [];
 
         const subnodesInput: Array<{
-            availableSubnodeId: string;
+            subnodeName : string;
             subnodeMetadata: any;
             positionX: number;
             positionY: number;
@@ -51,7 +52,7 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
 
             if (node.type === 'subnode') {
                 subnodesInput.push({
-                    availableSubnodeId: node.data.subnodeNodeId,
+                    subnodeName: node.data.subnodeNodeId,
                     subnodeMetadata: node.data.metadata,
                     positionX: node.position.x,
                     positionY: node.position.y,
@@ -69,6 +70,7 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
            const createdWorkflow = await tx.workflow.create({
                 data: {
                     id: workflowId,
+                    title: workflowTitle,
                     userId,
                     triggerId: '',
                     actions: {
@@ -119,7 +121,8 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
                     if (createdAction) {
                         await tx.subnodesActions.create({
                             data: {
-                                id: subnode.availableSubnodeId,
+
+                                subnodeName: subnode.subnodeName,
                                 actionId: createdAction.id,
                                 metadata: subnode.subnodeMetadata,
                                 positionX: subnode.positionX,

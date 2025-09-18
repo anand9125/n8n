@@ -25,6 +25,7 @@ model User {
 
 model Workflow {
   id            String     @id
+  title        String?
   triggerId     String
   userId       String
   user         User       @relation(fields: [userId], references: [id])
@@ -136,8 +137,9 @@ model Edge {
 }
 
 model subnodesActions{
-  id           String  
-  actionId    String     @unique
+  id           String    @id @default(uuid())
+  subnodeName     String
+  actionId    String     
   action      Action  @relation(fields: [actionId], references: [id], onDelete: Cascade)
   metadata     Json
   positionX    Float

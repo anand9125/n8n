@@ -29,6 +29,12 @@ export const TriggerSidebar: React.FC<TriggerSidebarProps> = ({
       icon: Webhook,
       title: 'On webhook call',
       description: 'Runs the flow on receiving an HTTP request',
+    },
+    {
+      id: 'form-builder',
+      icon: FileText,
+      title: 'On form submission',
+      description: 'Generate webforms in n8n and pass their responses to the workflow',
     }
   ];
 
