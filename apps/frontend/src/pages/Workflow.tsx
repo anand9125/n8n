@@ -6,7 +6,8 @@ import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/componen
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { WorkflowBuilder } from "@/components/WorkflowBuilder";
-
+import { DndProvider } from "react-dnd";
+import { HTML5Backend } from "react-dnd-html5-backend";
 export default function App() {
   const [title, setTitle] = useState("");
   const [open, setOpen] = useState(true); 
@@ -62,7 +63,9 @@ export default function App() {
         {/* Main content area */}
         <main className="flex-1 flex flex-col">
           <div className="flex-1 relative">
-            <WorkflowBuilder title={title} />
+            <DndProvider backend={HTML5Backend}>
+              <WorkflowBuilder title={title} />
+            </DndProvider>
           </div>
         </main>
       </div>

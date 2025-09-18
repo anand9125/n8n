@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowLeft, Plus, Trash2, FileText } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
+import { userFormStore } from '@/store/formData';
 
 interface FormField {
   label: string;
@@ -25,6 +26,7 @@ export const FormBuilderDialog: React.FC<FormBuilderDialogProps> = ({
 }) => {
   const [formName, setFormName] = useState("");
   const [fields, setFields] = useState<FormField[]>([]);
+  const setformData = userFormStore.getState().setFields;
 
   const addField = () =>
     setFields((prev) => [...prev, { label: "", type: "text" }]);
@@ -89,7 +91,18 @@ export const FormBuilderDialog: React.FC<FormBuilderDialogProps> = ({
     };
 
     onSave(formNode);
+    if(formNode.data.fields){
+       const extracted = formNode.data.fields.map(field => {
+        return {
+          label: field.label,
+          type: field.type,
+          key: field.key
+        }
+      })
+      setformData(extracted);
+    }
     
+    console.log(formNode,"this is form node and this will help you a lopt");
     // Reset form and close dialog
     setFormName("");
     setFields([]);

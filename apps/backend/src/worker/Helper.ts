@@ -1,30 +1,43 @@
 import axios from "axios";
 import {Resend} from "resend";
 
-
-export const sendMail = async (resendApi:string,senderEmailId: string,recieverEmailId: string, subject: string, body: string) => {
-  console.log("Sending email...");
-  const resend = new Resend(`re_Ca4mZiFb_38tehj1AJzV27FCQkbfj3FL5`);
-  console.log(resendApi,senderEmailId,recieverEmailId,subject,body)
-  await resend.emails.send({
-    from: `${senderEmailId}`,
-    to: `${recieverEmailId}`,
-    subject: `${subject}`,  
-    text: `${body}`,
-  })
+const replaceTokens = (template: string, data: Record<string, any>) => {
+  return template.replace(/\{\{(.*?)\}\}/g, (_, key) => {
+    const value = data[key.trim()];
+    return value !== undefined ? String(value) : "";
+  });
 };
+//input: form submission data (e.g. { name: "Anand", email: "test@example.com" })
+//subject: may contain tokens (e.g. "Welcome {{name}}")
+//body: may contain tokens (e.g. "Hello {{name}}, your email is {{email}}")
+export const sendMail = async (resendApi:string,senderEmailId: string,input: any, subject: string, body: string) => {
+    try{
+        const parsedBody = replaceTokens(body, input);
+        const parsedSubject = replaceTokens(subject, input);
+        const parseResendApi = replaceTokens(resendApi, input);
+        const parseSenderEmailId = replaceTokens(senderEmailId, input);
+        const resend = new Resend(parseResendApi);
+        await resend.emails.send({
+          from: `${parseSenderEmailId}`,
+          to: `${input.emailId}`,
+          subject: `${parsedSubject}`,  
+          text: `${parsedBody}`,
+        })
+    }catch(err){
+        console.log(err)
+    }
+}
 
-
-export const sendTelegramMessage = async (chatId: string,senderTokenId: string, message: string) => {
-  console.log("Sending message...");
-  console.log(chatId,senderTokenId,message)
-    try {
-    await axios.post(`https://api.telegram.org/bot${ senderTokenId }/sendMessage`, {
-      chat_id: `${chatId}`,
-      text: `${message}`,
+export const sendTelegramMessage = async (input:any,senderTokenId: string, message: string) => {
+  const parseMessage = replaceTokens(message, input);
+  const parseSenderTokenId = replaceTokens(senderTokenId, input);
+  try {
+    await axios.post(`https://api.telegram.org/bot${ parseSenderTokenId }/sendMessage`, {
+      chat_id: `${input.chatId}`,
+      text: `${parseMessage}`,
     });
     console.log("Message sent!");
-  } catch (err) {
+  }catch (err) {
     console.error("Error sending message:", err);
   }
   

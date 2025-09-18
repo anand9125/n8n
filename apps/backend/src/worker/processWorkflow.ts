@@ -10,7 +10,7 @@ export const sendWorkflowForProcess = async(workflow: any,inputData: any) => {
                 await sendMail(
                     action.metadata.actionData.config.resendApi,
                     action.metadata.actionData.config.fromEmail,
-                    inputData.emailId,
+                    inputData,
                     action.metadata.actionData.config.subject,
                     action.metadata.actionData.config.body
                 )
@@ -19,7 +19,7 @@ export const sendWorkflowForProcess = async(workflow: any,inputData: any) => {
             case "telegram":
                 console.log("telegram action")
                 await sendTelegramMessage(
-                    inputData.chatId,
+                    inputData,
                     action.metadata.actionData.config.botToken,
                     action.metadata.actionData.config.message
                 )

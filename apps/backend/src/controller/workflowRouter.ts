@@ -9,7 +9,7 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
         const { nodes, edges, workflowId } = req.body;
         const workflowTitle =req.body.title; 
         const userId = req?.id as string;
-        console.log(userId)
+        
 
         let triggerNodeId = '';
         let triggerMetadata = {};

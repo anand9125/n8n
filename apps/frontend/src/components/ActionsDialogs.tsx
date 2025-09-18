@@ -8,6 +8,9 @@ import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
+import { userFormStore } from '@/store/formData';
+import { DragableToken } from './DragableToken';
+import { DroppableInput } from './DroppableInput';
 
 interface ActionDialogsProps {
   isOpen: boolean;
@@ -50,7 +53,7 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
 }) => {
   const [formData, setFormData] = useState<Record<string, any>>({});
   const [activeTab, setActiveTab] = useState('parameters');
-
+  const fields = userFormStore.getState().fields;
   const config = actionConfigs[selectedAction as keyof typeof actionConfigs];
   const IconComponent = config?.icon || Zap;
 
@@ -111,10 +114,11 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
     switch (field.type) {
       case 'textarea':
         return (
-          <Textarea
+          <DroppableInput
             id={field.name}
+            type={field.type}
             value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
+            onChange={(val) => handleInputChange(field.name,val)}
             placeholder={field.placeholder}
             className="min-h-[100px]"
           />
@@ -139,14 +143,15 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
         );
       default:
         return (
-          <Input
+          <DroppableInput
             id={field.name}
             type={field.type}
-            value={formData[field.name] || ''}
-            onChange={(e) => handleInputChange(field.name, e.target.value)}
+            value={formData[field.name] || ""}
+            onChange={(val) => handleInputChange(field.name, val)}
             placeholder={field.placeholder}
-            className={field.type === 'password' ? 'font-mono text-sm' : ''}
+            className={field.type === "password" ? "font-mono text-sm" : ""}
           />
+
         );
     }
   };
@@ -194,6 +199,14 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                   </div>
                 ))
               }
+            </div>
+            <div className='pt-5'>
+              Draggable Component
+            </div>
+            <div>
+              {fields.map((f,idx)=>(
+                <DragableToken key={idx} field={f}></DragableToken>
+              ))}
             </div>
           </div>
 

@@ -15,7 +15,7 @@ import {
 import { workflowId } from '@/lib/config';
 import { v4 as uuidv4 } from 'uuid';
 import '@xyflow/react/dist/style.css';
-import { Plus, Webhook, Bot, Clock, Send, X, ChevronDown, BrainCircuit, MessageCircle } from 'lucide-react';
+import { Plus, Webhook, Bot, Clock, Send, X, ChevronDown, BrainCircuit, MessageCircle, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Card } from '@/components/ui/card';
 import { TriggerSidebar } from './TriggerSidebar';
@@ -47,12 +47,12 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
   const [showAIAgentsChatModelNodeSidebar,setShowAIAgentsChatModelNodeSidebar] = useState(false);
   const [webhookConfigured, setWebhookConfigured] = useState(false);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);  //track the currently selected node
-  const [workflowTitle,setWorkflowTitle] = useState("My workflow");
   const [showActionDialog, setShowActionDialog] = useState(false);
   const [selectedAction, setSelectedAction] = useState<string | null>(null);
   const [showFormBuilder,setShowFormBuilder] = useState(false);
   const integrationActionDataRef = useRef<Record<string, any>>({});
   const [selectedIntegrationNodeId, setSelectedIntegrationNodeId] = useState<string | null>(null);
+  const[triggerNodeId,setTriggerNodeId] = useState("webhook-1");
   
    console.log(workflowId,"this is workflowId");
   const onConnect = useCallback( //Automatically adds an edge when the user connects two nodes in the UI
@@ -69,8 +69,10 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
     console.log("Trigger selected:", triggerType);
     
     if (triggerType === 'webhook') {
+      setTriggerNodeId("webhook-1");
       setShowWebhookDialog(true);
-    } else if (triggerType === 'form-builder') {
+    } else if (triggerType === 'form-builder'){
+      setTriggerNodeId("form-builder-1");
       setShowFormBuilder(true);
     }
     else {
@@ -78,14 +80,15 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
     }
   };
 
-  const handleWebhookSave = (webhookData: any) => {  //Closes the webhook dialog and marks webhook as configured.
+  const handleTriggerSave = (triggerData: any) => {  //Closes the webhook dialog and marks webhook as configured.
     setShowWebhookDialog(false);
     setWebhookConfigured(true);
-    const webhookId = "webhook-1";
-    integrationActionDataRef.current[webhookId] =webhookData;
+    console.log("Webhook saved: this is webhook satadgfadfgadfadf", triggerData);
+    
+    integrationActionDataRef.current[triggerNodeId] =triggerData;
       // Create webhook node
-    const webhookNode: Node = {
-      id: webhookId,
+    const triggerNode: Node = {
+      id: triggerNodeId,
       type: 'trigger',
       position: { x: 400, y: 200 },
       data: { 
@@ -93,12 +96,15 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
           <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
             {/* Webhook Icon */}
             <div className="w-5 h-5 rounded  flex items-center justify-center">
-              <Webhook className="w-3 h-3 text-orange-400" />
+
+              {triggerNodeId === "webhook-1" && <Webhook className="w-3 h-3 text-orange-400" />}
+              {triggerNodeId === "form-builder-1" && <FileText className="w-3 h-3 text-orange-400" />}
             </div>
 
             {/* Webhook Text */}
             <div className="font-medium text-xs text-black ">
-              Webhook
+              {triggerNodeId === "webhook-1" && "Webhook"}
+              {triggerNodeId === "form-builder-1" && "Form Builder"}
             </div>
 
             {/* Delete Button - Positioned Top Right */}
@@ -111,8 +117,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
             </button>
           </div>
         ),
-        triggerNodeId:webhookId
-    
+        triggerNodeId
     },
 
     style: {
@@ -152,12 +157,12 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
     };
 
 
-  setNodes([webhookNode, addButtonNode]);
+  setNodes([triggerNode, addButtonNode]);
   const edgeId = crypto.randomUUID() as string
   // Connect webhook to add button
   const newEdge: Edge = {
     id:edgeId ,
-    source: 'webhook-1',
+    source: `${triggerNodeId}`,
     target: 'add-next',
     style: { stroke: 'hsl(var(--muted-foreground))' },
   };
@@ -542,7 +547,7 @@ const integrationNode = node;
     }
   }
   const handleSave = (formNode: any) => {
-    console.log("Created form:", formNode);
+    console.log("Created form:dfgsdgfdsfgdfgsdfgsdfgsdfgdgfds", formNode);
   };
 
 
@@ -617,7 +622,7 @@ const integrationNode = node;
               workflowId={workflowId}
               isOpen={showWebhookDialog}
               onClose={() => setShowWebhookDialog(false)}
-              onSave={handleWebhookSave}
+              onSave={handleTriggerSave}
             />
             <ActionDialogs
               isOpen={showActionDialog}
@@ -628,7 +633,7 @@ const integrationNode = node;
             <FormBuilderDialog
               isOpen={showFormBuilder}
               onClose={() => setShowFormBuilder(false)}
-              onSave={handleSave}
+              onSave={handleTriggerSave}
                />
       </div>
     </div>
