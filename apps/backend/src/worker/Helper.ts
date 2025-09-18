@@ -40,5 +40,4 @@ export const sendTelegramMessage = async (input:any,senderTokenId: string, messa
   }catch (err) {
     console.error("Error sending message:", err);
   }
-  
 };

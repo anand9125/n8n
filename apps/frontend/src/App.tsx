@@ -10,6 +10,7 @@ import Workflow from "./pages/Workflow";
 import Personal from "./pages/Personal";
 import Signup from "./pages/Signup";
 import SigninPage from "./pages/LoginPage";
+import { DynamicForm } from "./pages/DynamicFormSendtoUser";
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -26,6 +27,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
           <Route path="/workflow" element={<Workflow/>}></Route>
           <Route path="/instance/personal" element={<Personal/>}></Route>
+          <Route path ="/instance/form" element={<DynamicForm/>}></Route>
         
         </Routes>
       </BrowserRouter>
