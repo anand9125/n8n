@@ -161,7 +161,7 @@ export const FormBuilderDialog: React.FC<FormBuilderDialogProps> = ({
           </div>
 
           {/* Main content */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col relative ">
             <DialogHeader className="p-6 border-b border-border ">
               <DialogTitle className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center">
@@ -172,7 +172,7 @@ export const FormBuilderDialog: React.FC<FormBuilderDialogProps> = ({
               </DialogTitle>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto p-6 pb-24" style={{ maxHeight: 'calc(90vh - 140px)' }}>
+            <div className="flex-1 overflow-y-auto  p-6 pb-24" style={{ maxHeight: 'calc(90vh - 140px)' }}>
               <div className="space-y-6">
                 {/* Form Name */}
                 <div>
@@ -189,8 +189,8 @@ export const FormBuilderDialog: React.FC<FormBuilderDialogProps> = ({
                 </div>
 
                 {/* Form Fields */}
-                <div>
-                  <div className="flex justify-between items-center mb-4 relative">
+                <div className=''>
+                  <div className="flex justify-between items-center mb-4 ">
                     <Label className="text-sm font-medium">
                       Form Fields ({fields.length})
                       <span className="text-red-500 ml-1">*</span>
@@ -278,21 +278,30 @@ export const FormBuilderDialog: React.FC<FormBuilderDialogProps> = ({
                 </div>
               </div>
             </div>
-            <div className="border-t border-border p-6 bg-background  absolute bottom-0 ">
-              <div className="">
-                <div className="text-sm text-muted-foreground">
-                  {isFormValid() ? 'Ready to save' : 'Please fill all required fields'}
-                </div>
-                <div className="flex gap-12 ">
-                  <Button variant="outline" onClick={onClose}>
+            <div className="border-t border-border bg-background px-6 py-4 absolute bottom-0 ">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {isFormValid() ? " Ready to save" : " Please fill all required fields"}
+                </span>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="rounded-lg px-5"
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleSave} disabled={!isFormValid()}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={!isFormValid()}
+                    className="rounded-lg px-5 bg-blue-600 hover:bg-blue-700 text-white shadow"
+                  >
                     Save Form ({fields.length} fields)
                   </Button>
                 </div>
               </div>
-            </div>
+           </div>
+
           </div>
 
           {/* Right sidebar - Preview */}

@@ -9,7 +9,9 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
         const { nodes, edges, workflowId } = req.body;
         const workflowTitle =req.body.title; 
         const userId = req?.id as string;
-        
+        let isFormBuilder = false;
+        let formRoute;
+        let formId;
 
         let triggerNodeId = '';
         let triggerMetadata = {};
@@ -31,10 +33,15 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
             positionY: number;
             parentNodeId: string;
         }> = [];
+        
 
         nodes.forEach((node: any) => {
             if (node.type === 'trigger') {
                 triggerNodeId = node.data.triggerNodeId;
+                if(node.data.triggerNodeId === "form-builder-1"){
+                    isFormBuilder = true;
+                    formId=node.data.metadata.actionData.id;
+                }
                 triggerMetadata = node.data.metadata;
                 triggerPositionX = node.position.x;
                 triggerPositionY = node.position.y;
@@ -148,14 +155,17 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
             }
 
             return createdWorkflow;
-
         });
+        if(isFormBuilder){
+            formRoute = `${workflowId}/${userId}/${formId}`;
+        }
 
         res.status(200).json({
             message: 'Workflow created successfully',
             workflow,
+            formRoute: formRoute,
         });
-    } catch (err) {
+    }catch (err) {
         console.error(err);
         res.status(500).json({
             message: 'Error creating workflow',

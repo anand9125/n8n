@@ -1,6 +1,6 @@
 import { sendMail, sendTelegramMessage } from "./Helper";
 
-export const sendWorkflowForProcess = async(workflow: any,inputData: any) => {
+export const sendWorkflowForProcess = async(workflow: any,  inputData: any) => {
     //TODO :Run workflow 
     console.log("startin workflow")
     for(const action of workflow.actions){  //the outer for loop will run once for each item in workflow.actions

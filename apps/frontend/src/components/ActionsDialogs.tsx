@@ -2,9 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Send, Mail, MessageCircle, Database, Globe, Zap } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
@@ -200,7 +198,7 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                 ))
               }
             </div>
-            <div className='pt-5'>
+            <div className='text-xs font-medium text-muted-foreground mb-3 pt-4'>
               Draggable Component
             </div>
             <div>
@@ -287,7 +285,7 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
               </Tabs>
             </div>
 
-            <div className="border-t border-border ">
+            <div className="border-t border-border pt-4 ">
               <div className="flex justify-between items-center">
                 <div className="text-sm text-muted-foreground">
                   {isFormValid() ? 'Ready to save' : 'Please fill all required fields'}
@@ -306,12 +304,10 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
 
           {/* Right sidebar - Preview */}
           <div className="w-80 bg-muted/30 border-l border-border">
-            <div className="p-4 border-b border-border">
+            <div className="p-4 borderE-b border-border">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">PREVIEW</h3>
-                <Button variant="ghost" size="icon">
-                  <div className="w-4 h-4 border border-current" />
-                </Button>
+                
               </div>
             </div>
             <div className="p-4 space-y-4">

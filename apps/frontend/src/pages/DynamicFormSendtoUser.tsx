@@ -51,6 +51,7 @@ export const DynamicForm = () => {
         if (validateForm()) {
             console.log('Form submitted:', formValues);
             alert('Form submitted successfully! Check console for data.');
+            
         }
     };
 
@@ -164,7 +165,7 @@ export const DynamicForm = () => {
     return (
         <div className="max-w-2xl mx-auto p-6">
             <div className="bg-white rounded-lg shadow-lg p-8">
-                <h1 className="text-2xl font-bold text-gray-800 mb-6">Dynamic Form</h1>
+                <h1 className="text-2xl font-bold text-gray-800 mb-6">Form</h1>
                 
                 <div className="space-y-6">
                     {fields.map((field, index) => (

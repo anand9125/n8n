@@ -27,7 +27,7 @@ const App = () => (
           <Route path="*" element={<NotFound />} />
           <Route path="/workflow" element={<Workflow/>}></Route>
           <Route path="/instance/personal" element={<Personal/>}></Route>
-          <Route path ="/instance/form" element={<DynamicForm/>}></Route>
+          <Route path ="workflow/form/:userId/:workflowId/:formId" element={<DynamicForm/>}></Route>
         
         </Routes>
       </BrowserRouter>

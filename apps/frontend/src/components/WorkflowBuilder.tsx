@@ -28,6 +28,7 @@ import { ActionDialogs } from './ActionsDialogs';
 import { AIAgentChatModelNodeSidebar } from './AI_AgentChatModel';
 import { AIAgentsToolNodeSidebar } from './AI_AgentToolNode';
 import {FormBuilderDialog} from './formSlidbar';
+import { useNavigate } from 'react-router-dom';
 
 const initialNodes: Node[] = [];
 const initialEdges: Edge[] = [];
@@ -53,7 +54,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
   const integrationActionDataRef = useRef<Record<string, any>>({});
   const [selectedIntegrationNodeId, setSelectedIntegrationNodeId] = useState<string | null>(null);
   const[triggerNodeId,setTriggerNodeId] = useState("webhook-1");
-  
+  const navigate = useNavigate();
    console.log(workflowId,"this is workflowId");
   const onConnect = useCallback( //Automatically adds an edge when the user connects two nodes in the UI
     (params: Connection) => setEdges((eds) => addEdge(params, eds)),
@@ -192,52 +193,96 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
     integrationActionDataRef.current[selectedIntegrationNodeId] = actionData;
     }
   }
-const handleIntegrationSelect = (integration: string) => {
-  const currentAddNode = nodes.find(node => node.id === selectedNodeId);
-  if (!currentAddNode) return;
+  const handleIntegrationSelect = (integration: string) => {
+    const currentAddNode = nodes.find(node => node.id === selectedNodeId);
+    if (!currentAddNode) return;
 
-  const existingIntegrationNodes = nodes.filter(node => node.id.startsWith(integration));
-  const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;
-  setSelectedIntegrationNodeId(integrationNodeId);
-  setSelectedAction(integration);
-  setShowIntegrationSidebar(false);
+    const existingIntegrationNodes = nodes.filter(node => node.id.startsWith(integration));
+    const integrationNodeId = `${integration}-${existingIntegrationNodes.length + 1}`;
+    setSelectedIntegrationNodeId(integrationNodeId);
+    setSelectedAction(integration);
+    setShowIntegrationSidebar(false);
 
-  setShowActionDialog(true);
-  const existingAddNodes = nodes.filter(node => node.id.startsWith('add-next'));
-  const newAddNodeId = `add-next-${existingAddNodes.length + 1}`;
+    setShowActionDialog(true);
+    const existingAddNodes = nodes.filter(node => node.id.startsWith('add-next'));
+    const newAddNodeId = `add-next-${existingAddNodes.length + 1}`;
 
-  const oldEdge = edges.find(edge => edge.target === selectedNodeId);
+    const oldEdge = edges.find(edge => edge.target === selectedNodeId);
 
-  const isAIAgent = integration === 'AI-Agents';
-  const isChatModelIntegration = integration === 'OpenAI' || integration === 'Gemini' || integration === 'Ollama';
-  const isToolIntegration = ['Add', 'Substract', 'Multiply'].includes(integration);
+    const isAIAgent = integration === 'AI-Agents';
+    const isChatModelIntegration = integration === 'OpenAI' || integration === 'Gemini' || integration === 'Ollama';
+    const isToolIntegration = ['Add', 'Substract', 'Multiply'].includes(integration);
 
-  let node: Node;
+    let node: Node;
 
-  if (isChatModelIntegration || isToolIntegration) {
+    if (isChatModelIntegration || isToolIntegration) {
+      node = {
+        id: integrationNodeId,
+        type: 'subnode',
+        position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
+        data: {
+          label: (
+            <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
+              <div className="w-5 h-5 rounded flex items-center justify-center">
+                {/* No specific icon for ChatModel or Tool */}
+              </div>
+              <div>
+                <div className="font-medium text-xs text-black">
+                  {isChatModelIntegration && `${integration} Model`}
+                  {isToolIntegration && `${integration} Tool`}
+                </div>
+              </div>
+              {/* No delete button for these special integrations */}
+            </div>
+          ),
+          prevNodeId: oldEdge?.source || null,
+          nextNodeId: null,  // Disable Add button
+          subnodeNodeId: integration,
+          parentActionNodeId : oldEdge.source,
+          metadata: {
+            integrationType: integration,
+            createdAt: new Date().toISOString(),
+          },
+        },
+        style: {
+          background: '#e5e7eb',
+          border: '1px solid #4a5568',
+          borderRadius: '8px',
+          fontSize: '12px',
+          width: '150px',
+          height: '50px',
+        },
+      };
+    } else {
     node = {
       id: integrationNodeId,
-      type: 'subnode',
+      type: 'action',
       position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
       data: {
         label: (
           <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
             <div className="w-5 h-5 rounded flex items-center justify-center">
-              {/* No specific icon for ChatModel or Tool */}
+              {integration === 'telegram' && <Send className="w-3 h-3 text-blue-600" />}
+              {integration === 'resend' && <Bot className="w-3 h-3 text-blue-600" />}
+              {integration === 'AI-Agents' && <BrainCircuit className="w-3 h-3 text-blue-600" />}
             </div>
             <div>
               <div className="font-medium text-xs text-black">
-                {isChatModelIntegration && `${integration} Model`}
-                {isToolIntegration && `${integration} Tool`}
+                {integration}
               </div>
             </div>
-            {/* No delete button for these special integrations */}
+            <button
+              className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
+              onMouseDown={(e) => e.stopPropagation()}
+              onClick={(e) => { e.stopPropagation(); handleDeleteNode(integrationNodeId); }}
+            >
+              <X className="w-2 h-2" />
+            </button>
           </div>
         ),
         prevNodeId: oldEdge?.source || null,
-        nextNodeId: null,  // Disable Add button
-        subnodeNodeId: integration,
-        parentActionNodeId : oldEdge.source,
+        nextNodeId: isAIAgent ? null : newAddNodeId,
+        actionNodeId: integration,
         metadata: {
           integrationType: integration,
           createdAt: new Date().toISOString(),
@@ -248,175 +293,131 @@ const handleIntegrationSelect = (integration: string) => {
         border: '1px solid #4a5568',
         borderRadius: '8px',
         fontSize: '12px',
-        width: '150px',
-        height: '50px',
+        width: isAIAgent ? '150px' : '100px',
+        height: isAIAgent ? '50px' : '30px',
       },
     };
-  } else {
-  node = {
-    id: integrationNodeId,
-    type: 'action',
-    position: { x: currentAddNode.position.x, y: currentAddNode.position.y },
-    data: {
-      label: (
-        <div className="relative bg-gray-200 rounded-md w-full h-full flex items-center gap-2 p-1">
-          <div className="w-5 h-5 rounded flex items-center justify-center">
-            {integration === 'telegram' && <Send className="w-3 h-3 text-blue-600" />}
-            {integration === 'resend' && <Bot className="w-3 h-3 text-blue-600" />}
-            {integration === 'AI-Agents' && <BrainCircuit className="w-3 h-3 text-blue-600" />}
-          </div>
-          <div>
-            <div className="font-medium text-xs text-black">
-              {integration}
-            </div>
-          </div>
-          <button
-            className="absolute top-0 right-0 -mt-2 -mr-1 w-2 h-2 rounded-full bg-red-500 text-white flex items-center justify-center hover:opacity-80 transition-opacity"
-            onMouseDown={(e) => e.stopPropagation()}
-            onClick={(e) => { e.stopPropagation(); handleDeleteNode(integrationNodeId); }}
-          >
-            <X className="w-2 h-2" />
-          </button>
-        </div>
-      ),
-      prevNodeId: oldEdge?.source || null,
-      nextNodeId: isAIAgent ? null : newAddNodeId,
-      actionNodeId: integration,
-      metadata: {
-        integrationType: integration,
-        createdAt: new Date().toISOString(),
-      },
-    },
-    style: {
-      background: '#e5e7eb',
-      border: '1px solid #4a5568',
-      borderRadius: '8px',
-      fontSize: '12px',
-      width: isAIAgent ? '150px' : '100px',
-      height: isAIAgent ? '50px' : '30px',
-    },
-  };
-}
-
-const integrationNode = node;
-
-  const newNodes: Node[] = [integrationNode];
-  const newEdges: Edge[] = [];
-
-  if (isAIAgent) {
-    // Add multiple Add buttons for AI-Agents
-    const edgeLabels = ['Chat Models', '', 'Tools'];
-
-    for (let i = 0; i < 3; i++) {
-      const addNodeId = `add-next-${Date.now()}-${i}`;
-
-      const addNode: Node = {
-        id: addNodeId,
-        type: 'default',
-        position: {
-          x: currentAddNode.position.x + i * 200,
-          y: currentAddNode.position.y + 120,
-        },
-        data: {
-          label: (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
-              <div
-                className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); handleAddNextStep(addNodeId, edgeLabels[i]); }}
-              >
-                <Plus className="w-4 h-4 text-gray-600" />
-              </div>
-            </div>
-          ),
-          prevNodeId: integrationNodeId,
-          nextNodeId: null,
-        },
-        style: {
-          background: '#e5e7eb',
-          border: 'none',
-          borderRadius: '8px',
-          width: '40px',
-          height: '40px',
-        },
-      };
-
-      newNodes.push(addNode);
-
-      newEdges.push({
-        id: `${integrationNodeId}-to-${addNodeId}`,
-        source: integrationNodeId,
-        target: addNodeId,
-        label: edgeLabels[i],
-        style: { stroke: 'hsl(var(--muted-foreground))' },
-      });
-    }
-  } else {
-    // Add a single "Add Next" button for telegram or resend
-   if (!isChatModelIntegration && !isToolIntegration) {
-      const addNode: Node = {
-        id: newAddNodeId,
-        type: 'default',
-        position: {
-          x: currentAddNode.position.x + 200,
-          y: currentAddNode.position.y + 120,
-        },
-        data: {
-          label: (
-            <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
-              <div
-                className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
-                onMouseDown={(e) => e.stopPropagation()}
-                onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId, 'default'); }}
-              >
-                <Plus className="w-4 h-4 text-gray-600" />
-              </div>
-            </div>
-          ),
-          prevNodeId: integrationNodeId,
-          nextNodeId: null,
-        },
-        style: {
-          background: '#e5e7eb',
-          border: 'none',
-          borderRadius: '8px',
-          width: '40px',
-          height: '40px',
-        },
-      };
-
-      newNodes.push(addNode);
-
-      newEdges.push({
-        id: `${integrationNodeId}-to-${newAddNodeId}`,
-        source: integrationNodeId,
-        target: newAddNodeId,
-        label: '',
-        style: { stroke: 'hsl(var(--muted-foreground))' },
-      });
-    }
   }
 
-  // Link previous node to the integration node
-  if (oldEdge) {
-    newEdges.unshift({
-      id: `${oldEdge.source}-to-${integrationNodeId}`,
-      source: oldEdge.source,
-      target: integrationNodeId,
-      style: { stroke: 'hsl(var(--muted-foreground))' },
+  const integrationNode = node;
+
+    const newNodes: Node[] = [integrationNode];
+    const newEdges: Edge[] = [];
+
+    if (isAIAgent) {
+      // Add multiple Add buttons for AI-Agents
+      const edgeLabels = ['Chat Models', '', 'Tools'];
+
+      for (let i = 0; i < 3; i++) {
+        const addNodeId = `add-next-${Date.now()}-${i}`;
+
+        const addNode: Node = {
+          id: addNodeId,
+          type: 'default',
+          position: {
+            x: currentAddNode.position.x + i * 200,
+            y: currentAddNode.position.y + 120,
+          },
+          data: {
+            label: (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+                <div
+                  className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); handleAddNextStep(addNodeId, edgeLabels[i]); }}
+                >
+                  <Plus className="w-4 h-4 text-gray-600" />
+                </div>
+              </div>
+            ),
+            prevNodeId: integrationNodeId,
+            nextNodeId: null,
+          },
+          style: {
+            background: '#e5e7eb',
+            border: 'none',
+            borderRadius: '8px',
+            width: '40px',
+            height: '40px',
+          },
+        };
+
+        newNodes.push(addNode);
+
+        newEdges.push({
+          id: `${integrationNodeId}-to-${addNodeId}`,
+          source: integrationNodeId,
+          target: addNodeId,
+          label: edgeLabels[i],
+          style: { stroke: 'hsl(var(--muted-foreground))' },
+        });
+      }
+    } else {
+      // Add a single "Add Next" button for telegram or resend
+    if (!isChatModelIntegration && !isToolIntegration) {
+        const addNode: Node = {
+          id: newAddNodeId,
+          type: 'default',
+          position: {
+            x: currentAddNode.position.x + 200,
+            y: currentAddNode.position.y + 120,
+          },
+          data: {
+            label: (
+              <div className="w-full h-full flex items-center justify-center bg-gray-200 rounded-md">
+                <div
+                  className="w-4 h-4 rounded-full border-2 border-dashed border-gray-400 bg-gray-200 flex items-center justify-center cursor-pointer hover:border-primary hover:bg-gray-300 transition-colors"
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => { e.stopPropagation(); handleAddNextStep(newAddNodeId, 'default'); }}
+                >
+                  <Plus className="w-4 h-4 text-gray-600" />
+                </div>
+              </div>
+            ),
+            prevNodeId: integrationNodeId,
+            nextNodeId: null,
+          },
+          style: {
+            background: '#e5e7eb',
+            border: 'none',
+            borderRadius: '8px',
+            width: '40px',
+            height: '40px',
+          },
+        };
+
+        newNodes.push(addNode);
+
+        newEdges.push({
+          id: `${integrationNodeId}-to-${newAddNodeId}`,
+          source: integrationNodeId,
+          target: newAddNodeId,
+          label: '',
+          style: { stroke: 'hsl(var(--muted-foreground))' },
+        });
+      }
+    }
+
+    // Link previous node to the integration node
+    if (oldEdge) {
+      newEdges.unshift({
+        id: `${oldEdge.source}-to-${integrationNodeId}`,
+        source: oldEdge.source,
+        target: integrationNodeId,
+        style: { stroke: 'hsl(var(--muted-foreground))' },
+      });
+    }
+
+    setNodes(prevNodes => {
+      const filteredNodes = prevNodes.filter(node => node.id !== selectedNodeId);
+      return [...filteredNodes, ...newNodes];
     });
-  }
 
-  setNodes(prevNodes => {
-    const filteredNodes = prevNodes.filter(node => node.id !== selectedNodeId);
-    return [...filteredNodes, ...newNodes];
-  });
-
-  setEdges(prevEdges => {
-    const filteredEdges = prevEdges.filter(edge => edge.target !== selectedNodeId);
-    return [...filteredEdges, ...newEdges];
-  });
-};
+    setEdges(prevEdges => {
+      const filteredEdges = prevEdges.filter(edge => edge.target !== selectedNodeId);
+      return [...filteredEdges, ...newEdges];
+    });
+  };
 
 
 // When the user clicks the delete (X) button on a node, the goal is to:
@@ -541,6 +542,10 @@ const integrationNode = node;
         
       })
       console.log(response.data);
+      const responseData  = response.data;
+      if(responseData?.formRoute){
+        navigate(`form/${responseData.formRoute}`);
+      }
 
     }catch(err){
       console.log(err);
