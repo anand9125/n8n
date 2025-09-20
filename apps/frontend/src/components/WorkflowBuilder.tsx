@@ -634,6 +634,7 @@ export const WorkflowBuilder: React.FC<WorkflowBuilderProps> = ({ className,titl
               onClose={() => setShowActionDialog(false)}
               onSave={handleActionSave}
               selectedAction={selectedAction}
+              
             />
             <FormBuilderDialog
               isOpen={showFormBuilder}

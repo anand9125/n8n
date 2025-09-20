@@ -1,14 +1,22 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Send, Mail, MessageCircle, Database, Globe, Zap } from 'lucide-react';
+import { ArrowLeft, Send, Mail, MessageCircle, Database, Globe, Zap, Plus, Trash2, ChartNoAxesColumnDecreasing } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { userFormStore } from '@/store/formData';
+import { userFormStore, userResponseStore } from '@/store/formData';
 import { DragableToken } from './DragableToken';
 import { DroppableInput } from './DroppableInput';
+import SendAndWaitInfoDialog from './DiscriptionDialog';
+
+interface FormField {
+  label: string;
+  type: string;
+  key?: string;
+}
 
 interface ActionDialogsProps {
   isOpen: boolean;
@@ -54,7 +62,13 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
   const fields = userFormStore.getState().fields;
   const config = actionConfigs[selectedAction as keyof typeof actionConfigs];
   const IconComponent = config?.icon || Zap;
+  const [selectedSubAction, setSelectedSubAction] = useState("");
+  const [waitFields, setWaitFields] = useState<FormField[]>([]);
+  const [open, setOpen] = useState(false)
 
+  const userResponseFieldStore = userResponseStore.getState().setFields;
+  const userResonseField = userResponseStore.getState().fields;
+  console.log(userResonseField,"this is user response field")
   useEffect(() => {
     // Initialize form data with default values
     if (config) {
@@ -68,6 +82,9 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
       });
       setFormData(initialData);
     }
+    if(selectedAction === "telegram" || selectedAction === "resend"){
+      setSelectedSubAction("send");
+    }
   }, [selectedAction, config]);
 
   const handleInputChange = (fieldName: string, value: string) => {
@@ -76,22 +93,62 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
       [fieldName]: value
     }));
   };
+  useEffect(() => {
+    if (selectedSubAction === "sendAndWait") {
+      setOpen(true);
+    }
+  }, [selectedSubAction]);
+
+  // Field management functions (extracted from FormBuilderDialog)
+  const addField = () =>
+    setWaitFields((prev) => [...prev, { label: "", type: "text" }]);
+
+  const removeField = (idx: number) =>
+    setWaitFields((prev) => prev.filter((_, i) => i !== idx));
+
+  const updateField = (idx: number, key: keyof FormField, value: string) => {
+    setWaitFields((prev) => {
+      const updated = [...prev];
+      updated[idx] = { ...updated[idx], [key]: value };
+
+      if (key === "label" && value.trim()) {
+        updated[idx].key = value
+          .toLowerCase()
+          .replace(/\s+/g, "_")
+          .replace(/[^a-z0-9_]/g, "");
+      }
+      return updated;
+    });
+  };
 
   const handleSave = () => {
     const actionData = {
       actionType: selectedAction,
       config: formData,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
+      selectedAction: selectedSubAction,
+      waitFields: selectedSubAction === "sendAndWait" ? waitFields : undefined
     };
     onSave(actionData);
+    userResponseFieldStore(waitFields)
+    
+
     onClose(); // Close the dialog after saving
   };
 
   const isFormValid = () => {
     if (!config) return false;
-    return config.fields
+    const basicFieldsValid = config.fields
       .filter(field => field.required)
       .every(field => formData[field.name] && formData[field.name].trim() !== '');
+    
+    if (selectedSubAction === "sendAndWait") {
+      const waitFieldsValid = waitFields.length > 0 && 
+        waitFields.every(f => f.label.trim() && f.type);
+      return basicFieldsValid && waitFieldsValid;
+    }
+    
+    return basicFieldsValid;
   };
 
   if (!config) {
@@ -149,14 +206,13 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
             placeholder={field.placeholder}
             className={field.type === "password" ? "font-mono text-sm" : ""}
           />
-
         );
     }
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
-      <DialogContent className="max-w-5xl h-[90vh] p-0">
+      <DialogContent className="max-w-5xl max-h-[90vh] p-0">
         <div className="flex h-full">
           {/* Left sidebar */}
           <div className="w-80 bg-muted/30 p-6 border-r border-border">
@@ -197,6 +253,12 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                   </div>
                 ))
               }
+              {selectedSubAction === "sendAndWait" && (
+                <div className="flex items-center gap-2 text-xs">
+                  <div className={`w-2 h-2 rounded-full ${waitFields.length > 0 ? 'bg-green-500' : 'bg-gray-300'}`} />
+                  <span className="text-muted-foreground">Wait Fields ({waitFields.length})</span>
+                </div>
+              )}
             </div>
             <div className='text-xs font-medium text-muted-foreground mb-3 pt-4'>
               Draggable Component
@@ -209,7 +271,7 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
           </div>
 
           {/* Main content */}
-          <div className="flex-1 flex flex-col">
+          <div className="flex-1 flex flex-col relative">
             <DialogHeader className="p-6 border-b border-border">
               <DialogTitle className="flex items-center gap-3">
                 <div className={`w-8 h-8 rounded-lg bg-${config.color}-100 flex items-center justify-center`}>
@@ -220,16 +282,16 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
               </DialogTitle>
             </DialogHeader>
 
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 overflow-y-auto p-6 pb-24" style={{ maxHeight: 'calc(90vh - 140px)' }}>
               <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <div className="px-6 border-b border-border">
+                <div className="border-b border-border mb-6">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="parameters">Configuration</TabsTrigger>
-
+                    <TabsTrigger value="docs">Documentation</TabsTrigger>
                   </TabsList>
                 </div>
 
-                <TabsContent value="parameters" className="p-6 space-y-6">
+                <TabsContent value="parameters" className="space-y-6">
                   <div className="grid gap-6">
                     {config.fields.map(field => (
                       <div key={field.name}>
@@ -250,51 +312,140 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                         )}
                       </div>
                     ))}
+
+                    {/* Wait Fields Section - Only show when sendAndWait is selected */}
+                    {selectedSubAction === "sendAndWait" && (
+                      <div className=''>
+                        <div className="flex justify-between items-center mb-4 ">
+                          <Label className="text-sm font-medium">
+                            Response Fields ({waitFields.length})
+                            <span className="text-red-500 ml-1">*</span>
+                          </Label>
+                          <Button variant="outline" size="sm" onClick={addField}>
+                            <Plus className="h-4 w-4 mr-2" /> Add Field
+                          </Button>
+                        </div>
+
+                        {waitFields.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground border-2 border-dashed border-gray-200 rounded-lg">
+                            No response fields added yet. Click "Add Field" to get started.
+                          </div>
+                        ) : (
+                          <div className="space-y-4">
+                            {waitFields.map((field, idx) => (
+                              <div
+                                key={idx}
+                                className="p-4 border rounded-lg bg-card space-y-3"
+                              >
+                                <div className="flex justify-between items-center">
+                                  <span className="text-sm font-medium text-muted-foreground">
+                                    Field {idx + 1}
+                                  </span>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => removeField(idx)}
+                                    className="h-8 w-8 p-0"
+                                  >
+                                    <Trash2 className="h-4 w-4 text-red-500" />
+                                  </Button>
+                                </div>
+
+                                <div>
+                                  <Label className="text-xs text-muted-foreground mb-1 block">
+                                    Field Label
+                                  </Label>
+                                  <Input
+                                    placeholder="Field Label (e.g., User Response)"
+                                    value={field.label}
+                                    onChange={(e) => updateField(idx, "label", e.target.value)}
+                                    className="text-sm"
+                                  />
+                                </div>
+
+                                <div>
+                                  <Label className="text-xs text-muted-foreground mb-1 block">
+                                    Field Type
+                                  </Label>
+                                  <select
+                                    value={field.type}
+                                    onChange={(e) => updateField(idx, "type", e.target.value)}
+                                    className="w-full px-3 py-2 border border-input rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                                  >
+                                    <option value="">Select field type</option>
+                                    <option value="text">Text</option>
+                                 
+                                    <option value="approval">Approval (Approve/Disapprove)</option>
+                                  </select>
+                                </div>
+
+                                {field.label && (
+                                  <div className="text-xs text-muted-foreground">
+                                    Key:{" "}
+                                    {field.key ||
+                                      field.label
+                                        .toLowerCase()
+                                        .replace(/\s+/g, "_")
+                                        .replace(/[^a-z0-9_]/g, "")}
+                                  </div>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
 
-                <TabsContent value="docs" className="p-6">
-                  <div className="space-y-4">
-                    <h3 className="font-medium">{config.title} Integration</h3>
-                    <p className="text-sm text-muted-foreground">
-                      {config.description}
-                    </p>
-                    <div className="bg-muted rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Setup Instructions:</h4>
-                      <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
-                        {selectedAction === 'telegram' && (
-                          <>
-                            <li>Create a bot using @BotFather on Telegram</li>
-                            <li>Copy the bot token provided</li>
-                            <li>Get the chat ID where you want to send messages</li>
-                            <li>Configure the message content and formatting</li>
-                          </>
-                        )}
-                        {selectedAction === 'resned' && (
-                          <>
-                            <li>Configure your SMTP server credentials</li>
-                            <li>Set the sender and recipient email addresses</li>
-                            <li>Write your email subject and content</li>
-                            <li>Choose between plain text or HTML format</li>
-                          </>
-                        )}
-                      </ol>
-                    </div>
+                <TabsContent value="docs" className="space-y-4">
+                  <h3 className="font-medium">{config.title} Integration</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {config.description}
+                  </p>
+                  <div className="bg-muted rounded-lg p-4">
+                    <h4 className="font-medium mb-2">Setup Instructions:</h4>
+                    <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
+                      {selectedAction === 'telegram' && (
+                        <>
+                          <li>Create a bot using @BotFather on Telegram</li>
+                          <li>Copy the bot token provided</li>
+                          <li>Get the chat ID where you want to send messages</li>
+                          <li>Configure the message content and formatting</li>
+                        </>
+                      )}
+                      {selectedAction === 'resend' && (
+                        <>
+                          <li>Configure your SMTP server credentials</li>
+                          <li>Set the sender and recipient email addresses</li>
+                          <li>Write your email subject and content</li>
+                          <li>Choose between plain text or HTML format</li>
+                        </>
+                      )}
+                    </ol>
                   </div>
                 </TabsContent>
               </Tabs>
             </div>
 
-            <div className="border-t border-border pt-4 ">
-              <div className="flex justify-between items-center">
-                <div className="text-sm text-muted-foreground">
-                  {isFormValid() ? 'Ready to save' : 'Please fill all required fields'}
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" onClick={onClose}>
+            <div className="border-t border-border bg-background px-6 py-4 absolute bottom-0">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  {isFormValid() ? "Ready to save" : "Please fill all required fields"}
+                </span>
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={onClose}
+                    className="rounded-lg px-5"
+                  >
                     Cancel
                   </Button>
-                  <Button onClick={handleSave} disabled={!isFormValid()}>
+                  <Button
+                    onClick={handleSave}
+                    disabled={!isFormValid()}
+                    className="rounded-lg px-5 bg-blue-600 hover:bg-blue-700 text-white shadow"
+                  >
                     Save Action
                   </Button>
                 </div>
@@ -304,34 +455,149 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
 
           {/* Right sidebar - Preview */}
           <div className="w-80 bg-muted/30 border-l border-border">
-            <div className="p-4 borderE-b border-border">
+            <div className="p-4 border-b border-border">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">PREVIEW</h3>
-                
               </div>
             </div>
             <div className="p-4 space-y-4">
-              {selectedAction === 'telegram' && formData.message && (
+              {/* {selectedAction === 'telegram' && formData.message && (
                 <div className="bg-card rounded-lg p-3 border">
                   <div className="text-xs text-muted-foreground mb-1">Telegram Message Preview</div>
                   <div className="text-sm">{formData.message}</div>
                 </div>
               )}
               {selectedAction === 'resend' && (formData.subject || formData.body) && (
-                <div className="bg-card rounded-lg p-3 border">
+                <div className="bg-card rounded-lg p-3 border ">
                   <div className="text-xs text-muted-foreground mb-1">Email Preview</div>
                   {formData.subject && <div className="font-medium text-sm mb-1">{formData.subject}</div>}
                   {formData.body && <div className="text-sm text-muted-foreground">{formData.body}</div>}
                 </div>
+              )} */}
+
+              {/* Wait Fields Preview */}
+              {/* {selectedSubAction === "sendAndWait" && waitFields.length > 0 && (
+                <div className="bg-card rounded-lg p-3 border">
+                  <div className="text-xs text-muted-foreground mb-2">Response Fields</div>
+                  <div className="space-y-2">
+                    {waitFields.map((field, idx) => (
+                      field.label && (
+                        <div key={idx} className="text-sm flex justify-between">
+                          <span>{field.label}</span>
+                          <span className="text-muted-foreground text-xs">{field.type}</span>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                </div>
               )}
-              {!formData.message && !formData.subject && (
+               */}
+              
+              {!formData.message && !formData.subject && waitFields.length === 0 && (
                 <div className="text-center text-muted-foreground text-sm">
                   Fill in the configuration to see a preview
                 </div>
               )}
             </div>
+            <div className='pl-4'>
+               {selectedAction === 'telegram' && (
+              <div className="p-4  border rounded-lg bg-card shadow-sm space-y-4">
+                <h2 className="text-sm font-semibold text-foreground border-b pb-2">
+                  Telegram Actions
+                </h2>
+
+                    <div className="space-y-3">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="telegramAction"
+                          value="send"
+                          checked={selectedSubAction === "send"}
+                          onChange={(e)=>setSelectedSubAction(e.target.value)}
+                          className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          
+                        />
+                        <span className="text-xs text-foreground">Send Message</span>
+                      </label>
+
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="telegramAction"
+                          value="sendAndWait"
+                           checked={selectedSubAction === "sendAndWait"}
+                          onChange={(e)=>setSelectedSubAction(e.target.value)}
+                          className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-xs text-foreground">
+                          Send Message and Wait for Response
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+              {selectedAction === 'resend' && (
+              <div className="p-4 border  rounded-lg bg-card shadow-sm space-y-3 ">
+                <h2 className="text-sm font-semibold text-foreground border-b pb-2">
+                  Email Actions
+                </h2>
+
+                    <div className="space-y-3">
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="emailAction"
+                          value="send"
+                           checked={selectedSubAction === "send"}
+                          onChange={(e)=>setSelectedSubAction(e.target.value)}
+                          className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-xs text-foreground">Send Email</span>
+                      </label>
+
+                      <label className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="emailAction"
+                          value="sendAndWait"
+                           checked={selectedSubAction === "sendAndWait"}
+                          onChange={(e)=>setSelectedSubAction(e.target.value)}
+                          className="h-3 w-3 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-xs text-foreground">
+                          Send Email and Wait for Response
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+                )}
+                {
+                  (userResonseField.length > 0) &&
+                  <div className='pt-6'>
+                     <div className="bg-card rounded-lg p-4 mb-6">
+                    This is the field of previous response 
+                    <table className="w-full border border-gray-200 text-sm bg-white">
+                    <tbody>
+                      {userResonseField.map((field, idx) => (
+                        <tr
+                          key={idx}
+                          className="border-t border-gray-200 hover:bg-gray-50 transition"
+                        >
+                          <td className="px-3 py-2 text-gray-700">{field.label}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  </div>
+                  </div>
+                }
+
+              </div>
+               <SendAndWaitInfoDialog open={open} onOpenChange={setOpen} />
           </div>
         </div>
+        
+
       </DialogContent>
     </Dialog>
   );

@@ -1,5 +1,6 @@
 import axios from "axios";
 import {Resend} from "resend";
+const pendingResponses: Map<string, (value: any) => void> = new Map();
 
 const replaceTokens = (template: string, data: Record<string, any>) => {
   return template.replace(/\{\{(.*?)\}\}/g, (_, key) => {
@@ -27,17 +28,11 @@ export const sendMail = async (resendApi:string,senderEmailId: string,input: any
         console.log(err)
     }
 }
+export const sendMailAndWait = async (resendApi:string,senderEmailId: string,input: any, subject: string, body: string) => {
+    try{
+        await sendMail(resendApi,senderEmailId,input,subject,body)
 
-export const sendTelegramMessage = async (input:any,senderTokenId: string, message: string) => {
-  const parseMessage = replaceTokens(message, input);
-  const parseSenderTokenId = replaceTokens(senderTokenId, input);
-  try {
-    await axios.post(`https://api.telegram.org/bot${ parseSenderTokenId }/sendMessage`, {
-      chat_id: `${input.chatId}`,
-      text: `${parseMessage}`,
-    });
-    console.log("Message sent!");
-  }catch (err) {
-    console.error("Error sending message:", err);
-  }
-};
+    }catch(err){
+        console.log(err)
+    }
+}

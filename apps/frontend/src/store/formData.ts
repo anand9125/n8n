@@ -25,3 +25,12 @@ export const userFormStore = create<FormData>()(
 );
 
 //Zustand will save fields into localStorage under the key form-store.
+
+
+
+export const userResponseStore = create<FormData>((set)=>({
+  fields: [],
+  setFields: (fields) => set({ fields }),
+}))
+
+
