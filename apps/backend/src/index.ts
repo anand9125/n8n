@@ -7,6 +7,8 @@ import { actionRouter } from "./routes/actions";
 import { credentialRouter } from "./routes/credentialsRouter";
 import { webhookRouter } from "./worker/webhook";
 
+import { sendSigninEmail } from "./worker/resend";
+
 const app = express();
 app.use(express.json());
 
@@ -48,3 +50,6 @@ app.post("/api/v1/test", (req: Request, res: Response) => {
 app.listen(4000, () => {   
     console.log("Server is running on port 4000");   
 });
+
+
+// sendSigninEmail()

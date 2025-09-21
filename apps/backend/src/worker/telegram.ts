@@ -1,11 +1,10 @@
 import axios from "axios";
 
-// Registry maps
-const pendingResponses: Map<string, (value: any) => void> = new Map();  //Holds pending promises waiting for replies
-const activePollers: Map<string, { stop: () => void; isActive: boolean }> = new Map();  //Tracks running pollers per bot token.
-const lastUpdateIds: Map<string, number> = new Map();
 
-// --- Helpers ---
+const pendingResponses: Map<string, (value: any) => void> = new Map();  //Holds pending promises waiting for replies
+const activePollers: Map<string, { stop: () => void; isActive: boolean }> = new Map();  //Tracks running pollers per bot token. each poller has a stop() method and isActive flag
+const lastUpdateIds: Map<string, number> = new Map();  //Stores the last processed update_id for each bot token.Ensures we don’t re-process old messages.
+
 const replaceTokens = (template: string, data: Record<string, any>) => {
   return template.replace(/\{\{(.*?)\}\}/g, (_, key) => {
     const value = data[key.trim()];
@@ -13,7 +12,7 @@ const replaceTokens = (template: string, data: Record<string, any>) => {
   });
 };
 
-const makeKey = (chatId: string, messageId: number) =>
+const makeKey = (chatId: string, messageId: number) => //Builds unique key for pending responses map.
   `${chatId}:${messageId}`;
 
 // Clear webhook to prevent conflicts
@@ -26,7 +25,6 @@ const clearWebhook = async (botToken: string) => {
   }
 };
 
-// --- Core Polling (Only for specific message responses) ---
 const startTelegramPolling = async (botToken: string, targetMessageId: number, chatId: string) => {
   // Stop any existing poller for this bot
   if (activePollers.has(botToken)) {
@@ -41,7 +39,7 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
   // Wait longer for webhook to be cleared and any other instances to stop
   await new Promise(resolve => setTimeout(resolve, 3000));
 
-  console.log(`🔄 Starting targeted polling for bot ${botToken} - waiting for reply to message ${targetMessageId}`);
+  console.log(` Starting targeted polling for bot ${botToken} - waiting for reply to message ${targetMessageId}`);
 
   let retryCount = 0;
   const maxRetries = 3;
@@ -51,6 +49,9 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
     if (!isActive) return;
 
     try {
+        //every message or update that telegram give us it has a unique field called update_id
+        //update_id is globally increasing for all updates received by your bot.
+        //Telegram requires you to track it so you don’t process the same update twice.
       const lastUpdateId = lastUpdateIds.get(botToken) ?? 0;
       const response = await axios.get(
         `https://api.telegram.org/bot${botToken}/getUpdates?offset=${
@@ -71,7 +72,7 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
           const text = update.message.text;
           const replyToId = update.message.reply_to_message?.message_id;
 
-          console.log("📩 Received message:", messageChatId, text);
+          console.log("Received message:", messageChatId, text);
 
           // Only process if it's a reply to our target message and from the correct chat
           if (replyToId === targetMessageId && messageChatId === chatId) {
@@ -97,7 +98,7 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
       
       // If we get a 409 conflict, stop polling entirely
       if (err.response?.status === 409) {
-        console.log("🛑 409 conflict - another instance is running. Stopping this poller.");
+        console.log(" 409 conflict - another instance is running. Stopping this poller.");
         stopTelegramPolling(botToken);
         return;
       }
@@ -114,7 +115,7 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
         }, delay);
         return;
       } else {
-        console.log("❌ Max retries reached, stopping polling");
+        console.log(" Max retries reached, stopping polling");
         stopTelegramPolling(botToken);
         return;
       }
@@ -130,7 +131,7 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
   const pollerControl = {
     stop: () => {
       isActive = false;
-      console.log(`🛑 Stopping polling for bot ${botToken}`);
+      console.log(`Stopping polling for bot ${botToken}`);
     },
     isActive: true
   };
@@ -147,11 +148,11 @@ export const stopTelegramPolling = (botToken: string) => {
     const poller = activePollers.get(botToken)!;
     poller.stop();
     activePollers.delete(botToken);
-    console.log(`🛑 Stopped polling for bot ${botToken}`);
+    console.log(` Stopped polling for bot ${botToken}`);
   }
 };
 
-// --- Public Functions ---
+
 export const sendTelegramMessage = async (
   input: any,
   senderTokenId: string,
@@ -168,9 +169,9 @@ export const sendTelegramMessage = async (
         text: `${parseMessage}`,
       }
     );
-    console.log("✅ Telegram message sent!");
+    console.log(" Telegram message sent!");
   } catch (err) {
-    console.error("❌ Error sending message:", err);
+    console.error(" Error sending message:", err);
   }
 };
 
@@ -214,7 +215,7 @@ export const sendTelegramMessageAndWait = async (
       }, 120000); // 2 min
     });
   } catch (err) {
-    console.error("❌ Error sending message:", err);
+    console.error(" Error sending message:", err);
     throw err;
   }
 };

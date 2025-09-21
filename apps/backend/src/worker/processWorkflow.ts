@@ -9,7 +9,7 @@ export const sendWorkflowForProcess = async(workflow: any,  inputData: any) => {
         switch(action.availableActionId){
             case "resend":
                 console.log("resend action")
-                if(action.metadata.selectedAction === "send"){
+                if(action.metadata.actionData.selectedAction === "send"){
                     await sendMail(
                         action.metadata.actionData.config.resendApi,
                         action.metadata.actionData.config.fromEmail,
@@ -18,7 +18,8 @@ export const sendWorkflowForProcess = async(workflow: any,  inputData: any) => {
                         action.metadata.actionData.config.body
                     
                     )  
-                }else if(action.metadata.selectedAction === "sendAndWait"){
+                }else if(action.metadata.actionData.selectedAction === "sendAndWait"){
+                    console.log("send and wait")
                     await sendMailAndWait(
                         action.metadata.actionData.config.resendApi,
                         action.metadata.actionData.config.fromEmail,
@@ -33,12 +34,11 @@ export const sendWorkflowForProcess = async(workflow: any,  inputData: any) => {
             case "telegram":
                 console.log("telegram action")
                 
-                if(action.metadata.selectedAction === "send"){
+                if(action.metadata.actionData.selectedAction === "send"){
                     await sendTelegramMessage(
                         inputData,
                         action.metadata.actionData.config.botToken,
-                        action.metadata.actionData.config.message
-                       
+                        action.metadata.actionData.config.message 
                     )
                 }else if(action.metadata.actionData.selectedAction === "sendAndWait"){
                     console.log("send and wait")
@@ -46,7 +46,6 @@ export const sendWorkflowForProcess = async(workflow: any,  inputData: any) => {
                         inputData,
                         action.metadata.actionData.config.botToken,
                         action.metadata.actionData.config.message
-                      
                     )
                 }
                 break;
