@@ -7,7 +7,8 @@ import { actionRouter } from "./routes/actions";
 import { credentialRouter } from "./routes/credentialsRouter";
 import { webhookRouter } from "./worker/webhook";
 
-import { sendSigninEmail } from "./worker/resend";
+
+import { postmarkRouter } from "./worker/email";
 
 const app = express();
 app.use(express.json());
@@ -25,6 +26,8 @@ app.use("/api/v1/avaialbleActions",actionRouter)
 app.use("/api/v1/credentials",credentialRouter)
 
 app.use("/api/v1/workflow",webhookRouter)
+
+app.use("/api/v1/postmark",postmarkRouter)
 
 app.post("/api/v1/test", (req: Request, res: Response) => {
   const { nodes, edges, workflowId, userId } = req.body;
@@ -50,6 +53,3 @@ app.post("/api/v1/test", (req: Request, res: Response) => {
 app.listen(4000, () => {   
     console.log("Server is running on port 4000");   
 });
-
-
-// sendSigninEmail()
