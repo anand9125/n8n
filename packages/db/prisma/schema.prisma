@@ -35,6 +35,8 @@ model Workflow {
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
   edges        Edge[]
+  excution     excution[]
+  status       status?
 }
 
 model Trigger {
@@ -73,6 +75,7 @@ model Action {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   subnodes            subnodesActions[]
+  excution     excution[]
 }
 
 model AvailableAction {
@@ -144,4 +147,23 @@ model subnodesActions{
   metadata     Json
   positionX    Float
   positionY    Float
+}
+
+
+model excution {
+  id           String    @id @default(uuid())
+  workflowId   String
+  workflow     Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  actionId    String
+  action      Action  @relation(fields: [actionId], references: [id], onDelete: Cascade)
+  metadata     Json
+  pointer      String?
+  status       status
+}
+
+ enum status {
+  SUCCESS 
+  FAILED
+  WAITING
+  RUNNING
 }

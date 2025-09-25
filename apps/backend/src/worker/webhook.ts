@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import {PrismaClient} from "@prisma/client"; // Make sure the correct prisma import path is used
 import { sendWorkflowForProcess } from './processWorkflow';
+import { getWorkflow } from './getWorkflow';
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -9,29 +10,10 @@ router.post("/:userId/:workflowId", async (req: Request, res: Response) => {
     const { userId, workflowId } = req.params;
     const inputData = req.body;
     try {
-          const workflow = await prisma.workflow.findFirst({
-            where: {
-                id: workflowId,
-                userId: userId,
-            },
-            include: {
-                actions: {
-                    include: {
-                        type: true,      
-                        subnodes: true,  
-                    },
-                },
-                trigger: {
-                    include: {
-                        type: true,     
-                    },
-                },
-                edges: true,        
-            },
-        });
+          const workflow = await getWorkflow(workflowId as string);
         console.log("reached here")
 
-        sendWorkflowForProcess(workflow,inputData);
+         sendWorkflowForProcess(workflow,inputData);
 
         if (!workflow) {
              res.status(404).json({

@@ -1,10 +1,13 @@
-import { Resend } from "resend";
-import { simpleParser } from "mailparser";
-import Imap from "imap";
+import { Resend } from "resend"
+import { Router, Request, Response } from 'express';
+const router = Router();
+import {PrismaClient} from "@prisma/client";
+import { sendWorkflowForProcess } from "./processWorkflow";
+const prisma = new PrismaClient();
+const inputMetadat:Map<string,any> = new Map();
+import { IncomingEmail } from "../types/type";
+import { getWorkflow } from "./getWorkflow";
 
-const pendingResponses: Map<string, (value: any) => void> = new Map();
-
-// Utility: replace tokens like {{name}} in subject/body
 const replaceTokens = (template: string, data: Record<string, any>) => {
   return template.replace(/\{\{(.*?)\}\}/g, (_, key) => {
     const value = data[key.trim()];
@@ -12,15 +15,16 @@ const replaceTokens = (template: string, data: Record<string, any>) => {
   });
 };
 
-// --- Send email via Resend ---
+
 export const sendMail = async (
-  resendApi: string,
-  senderEmailId: string,
-  input: any,
-  subject: string,
-  body: string
+  action:any,
+  input: any
 ) => {
   try {
+    const resendApi = action.metadata.actionData.config.resendApi
+    const senderEmailId = action.metadata.actionData.config.fromEmail
+    const subject = action.metadata.actionData.config.subject
+    const body =  action.metadata.actionData.config.body
     const parsedBody = replaceTokens(body, input);
     const parsedSubject = replaceTokens(subject, input);
     const parseResendApi = replaceTokens(resendApi, input);
@@ -46,118 +50,112 @@ export const sendMail = async (
   }
 };
 
-// --- Start IMAP listener ---
-function startImapListener(input:any,senderEmailId:any) {
- // console.log("[IMAP] Starting listener for replies from:", expectedEmail);
-  console.log("[IMAP] Starting listener for replies from:", senderEmailId,input);
-const imap = new Imap({
-  user: 'ultimatcourses@coursehubb.store',
-  password: 'your_app_specific_password', // Use app password, not regular password
-  host: 'imappro.zoho.in', // Try this alternative host
-  port: 993,
-  tls: true,
-  tlsOptions: { 
-    rejectUnauthorized: true, // More secure
-    servername: 'imappro.zoho.in'
-  },
-  connTimeout: 60000, // 60 seconds timeout
-  authTimeout: 5000
-});
-  let lastUid = 0;
 
-  function openInbox(cb: any) {
-    imap.openBox("INBOX", false, cb);
-  }
-
-  imap.once("ready", () => {
-    openInbox((err: any, box: any) => {
-      if (err) throw err;
-
-      // Get the latest UID at connection time
-      imap.search(["ALL"], (err, results) => {
-        if (err) throw err;
-
-        if (results.length) {
-          lastUid = Math.max(...results);
-        }
-
-        console.log("[IMAP] Listening for new mails after UID:", lastUid);
-
-        imap.on("mail", () => {
-          const f = imap.fetch(`${lastUid + 1}:*`, {
-            bodies: "",
-            markSeen: true,
-          });
-
-          f.on("message", (msg, seqno) => {
-            let buffer = "";
-            msg.on("body", (stream) => {
-              stream.on("data", (chunk) => (buffer += chunk.toString("utf8")));
-              stream.once("end", async () => {
-                const parsed = await simpleParser(buffer);
-                console.log("[IMAP] Parsed mail:",parsed)
-                const from = parsed.from?.text || "";
-                const text = parsed.text?.trim() || "";
-
-                console.log("[IMAP] New mail received from:", from);
-
-                if (from.includes(input.emailId)) {
-                  console.log("[IMAP] ✅ Matched user reply:", text);
-
-                  if (pendingResponses.has(input.emailId)) {
-                    const resolver = pendingResponses.get(input.emailId)!;
-                    resolver(text);
-                    pendingResponses.delete( input.emailId);
-                  }
-                } else {
-                  console.log("[IMAP] Ignored mail (not from expected user).");
-                }
-              });
-            });
-          });
-
-          f.on("end", () => {
-            lastUid = lastUid + 1;
-          });
-        });
-      });
-    });
-  });
-
-  imap.connect();
-}
-
-// --- Send mail and wait for reply ---
-export const sendMailAndWait = async (
+export const sendMailTOWaitAndReply = async (
   resendApi: string,
   senderEmailId: string,
+  excutionId: string,
   input: any,
   subject: string,
   body: string
 ) => {
-  console.log("[sendMailAndWait] Sending mail and waiting for reply...");
-
-  return new Promise(async (resolve, reject) => {
-    startImapListener(input,senderEmailId); // start listener for this user
-    await sendMail(resendApi, senderEmailId, input, subject, body);
-
-    pendingResponses.set(input.emailId, resolve);
-    console.log("[sendMailAndWait] Waiting for response from:", input.emailId);
-  });
+  try {
+    const parsedBody = replaceTokens(body, input);
+    const parsedSubject = replaceTokens(subject, input);
+    const parseResendApi = replaceTokens(resendApi, input);
+    const parseSenderEmailId = replaceTokens(senderEmailId, input);
+    const resend = new Resend(`${parseResendApi}`);
+    const response = await resend.emails.send({
+      from: parseSenderEmailId,
+      to: input.emailId,
+      replyTo:`${excutionId}@reply.coursehubb.store`,
+      subject: parsedSubject,
+      html: parsedBody,
+    });
+  } catch (err) {
+    console.error("[sendMail] Error:", err);
+  }
+};
+export const getNextActionMetadata = (actions: any[], actionId: string) => {
+  const sortedActions = [...actions].sort((a, b) => a.sortingOrder - b.sortingOrder);
+  const currentIndex = sortedActions.findIndex((a) => a.id === actionId);
+  if (currentIndex === -1) return null; // not found
+  if (currentIndex === sortedActions.length - 1) return null;
+  return sortedActions[currentIndex + 1];
 };
 
 
+export const sendMailAndWait = async ( workflow: any,action:any,input: any) => {
+     try{
+        const resendApi= action.metadata.actionData.config.resendApi
+        const senderEmailId = action.metadata.actionData.config.fromEmail
+        const workflowId= workflow.id //TODO :change this to workflowId and action id
+        const subject = action.metadata.actionData.config.subject
+        const body =  action.metadata.actionData.config.body
+        const getNextAction = getNextActionMetadata(workflow.actions,action.id)
+        const nextActionId = getNextAction?.id
+        const excution = await prisma.excution.create({
+          data:{
+            workflowId: workflowId,
+            actionId: action.id,
+            metadata: "sfasdfasdfsaa",
+            pointer: nextActionId,
+            status: "WAITING",
+          }
+        })
+        await sendMailTOWaitAndReply(resendApi, senderEmailId,excution.id, input, subject, body);
+        inputMetadat.set(excution.id,input)
+        return excution;
+     }catch (err) {
+         console.error("[sendMailAndWait] Error:", err);
+     }
+ };
 
 
-
-import { Router, Request, Response } from 'express';
-
-const router = Router();
-
-
-router.post("/email/inbound", (req: Request, res: Response) => {
+router.post("/email/inbound", async(req: Request, res: Response) => {
     // TODO: Handle inbound email
-    console.log(req.body)
+    const emailPayload = req.body;
+    const mainEmail:IncomingEmail= {
+      fromName: emailPayload.FromName,
+      fromEmail: emailPayload.From, // main sender email
+      to: emailPayload.To, // main recipient
+      subject: emailPayload.Subject,
+      messageId: emailPayload.MessageID,
+      date: emailPayload.Date,
+      textBody: emailPayload.TextBody,
+      htmlBody: emailPayload.HtmlBody,
+      strippedTextReply: emailPayload.StrippedTextReply,
+      attachments: emailPayload.Attachments || [],
+    };
+    const excutionId = mainEmail.to.split("@")[0] as string
+    const excution = await prisma.excution.findUnique({
+        where: {
+            id: excutionId,
+        },
+    })
+    if(!excution){
+      res.status(404).send  ({
+        message: "Email not found",
+      })  
+      return
+    }
+    await prisma.excution.update({
+        where: {
+            id: excutionId,
+        },
+        data: {
+            status: "SUCCESS",
+            metadata: {
+                mainEmail: mainEmail
+            }
+        }
+    })
+    const workflow = await getWorkflow(excution.workflowId) 
+    const metadata = inputMetadat.get(excutionId)
+    if(!workflow){
+      return
+    }
+    sendWorkflowForProcess(workflow,metadata,excution.pointer as string,excution)  
     res.status(200).send  ({
         message: "Email received",
     })  

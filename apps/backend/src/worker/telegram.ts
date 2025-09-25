@@ -1,9 +1,13 @@
 import axios from "axios";
-
-
-const pendingResponses: Map<string, (value: any) => void> = new Map();  //Holds pending promises waiting for replies
-const activePollers: Map<string, { stop: () => void; isActive: boolean }> = new Map();  //Tracks running pollers per bot token. each poller has a stop() method and isActive flag
-const lastUpdateIds: Map<string, number> = new Map();  //Stores the last processed update_id for each bot token.Ensures we don’t re-process old messages.
+import {PrismaClient} from "@prisma/client";
+import { getNextActionMetadata } from "./email";
+import { sendWorkflowForProcess } from "./processWorkflow";
+import { getWorkflow } from "./getWorkflow";
+import { ActionResponse } from "../types/type";
+const inputMetadat:Map<string,any> = new Map();
+const prisma = new PrismaClient();
+const activePollers: Map<string, { stop: () => void; isActive: boolean }> = new Map();  
+const lastUpdateIds: Map<string, number> = new Map();  
 
 const replaceTokens = (template: string, data: Record<string, any>) => {
   return template.replace(/\{\{(.*?)\}\}/g, (_, key) => {
@@ -26,17 +30,15 @@ const clearWebhook = async (botToken: string) => {
 };
 
 const startTelegramPolling = async (botToken: string, targetMessageId: number, chatId: string) => {
-  // Stop any existing poller for this bot
   if (activePollers.has(botToken)) {
     const existingPoller = activePollers.get(botToken)!;
     existingPoller.stop();
     activePollers.delete(botToken);
   }
+  console.log(" Starting poller for bot token")
 
-  // Clear webhook first to prevent 409 conflicts
   await clearWebhook(botToken);
   
-  // Wait longer for webhook to be cleared and any other instances to stop
   await new Promise(resolve => setTimeout(resolve, 3000));
 
   console.log(` Starting targeted polling for bot ${botToken} - waiting for reply to message ${targetMessageId}`);
@@ -49,9 +51,6 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
     if (!isActive) return;
 
     try {
-        //every message or update that telegram give us it has a unique field called update_id
-        //update_id is globally increasing for all updates received by your bot.
-        //Telegram requires you to track it so you don’t process the same update twice.
       const lastUpdateId = lastUpdateIds.get(botToken) ?? 0;
       const response = await axios.get(
         `https://api.telegram.org/bot${botToken}/getUpdates?offset=${
@@ -62,7 +61,7 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
         }
       );
 
-      retryCount = 0; // Reset retry count on successful request
+      retryCount = 0; 
 
       for (const update of response.data.result) {
         lastUpdateIds.set(botToken, update.update_id);
@@ -71,39 +70,46 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
           const messageChatId = update.message.chat.id.toString();
           const text = update.message.text;
           const replyToId = update.message.reply_to_message?.message_id;
-
+            console.log("Received message:", replyToId, text);
           console.log("Received message:", messageChatId, text);
 
-          // Only process if it's a reply to our target message and from the correct chat
-          if (replyToId === targetMessageId && messageChatId === chatId) {
-            const key = makeKey(chatId, targetMessageId);
-            const resolver = pendingResponses.get(key);
-
-            if (resolver) {
-              console.log("✅ Found matching reply! Stopping polling and resolving...");
-              resolver(text);
-              pendingResponses.delete(key);
-              
-              // Stop polling immediately after getting the response
-              stopTelegramPolling(botToken);
-              return;
+             const key = makeKey(chatId, targetMessageId);
+            const excution =await prisma.excution.findUnique({
+              where:{
+                id: key,
+              }
+            }) as ActionResponse
+            if(excution){
+              const updateExction = await prisma.excution.update({
+                where: {
+                  id: key,
+                },
+                data: {
+                  status: "SUCCESS",
+                  metadata: {
+                    telegramData: text
+                  }
+                }
+              })
             }
+            stopTelegramPolling(botToken);
+            
+            const workflow = await getWorkflow(excution.workflowId )
+            const metadata = inputMetadat.get(key)
+            sendWorkflowForProcess(workflow,metadata,excution.pointer as string,excution)
+            return;
           }
         }
-      }
-    } catch (err:any) {
+      
+    }catch (err:any) {
       if (!isActive) return;
       
       console.error("Polling error:", err);
-      
-      // If we get a 409 conflict, stop polling entirely
       if (err.response?.status === 409) {
         console.log(" 409 conflict - another instance is running. Stopping this poller.");
         stopTelegramPolling(botToken);
         return;
       }
-
-      // For other errors, implement exponential backoff
       retryCount++;
       if (retryCount <= maxRetries) {
         const delay = Math.min(1000 * Math.pow(2, retryCount), 30000);
@@ -120,14 +126,10 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
         return;
       }
     }
-
-    // Schedule next poll only if still active
     if (isActive) {
       setTimeout(poll, 1000);
     }
   };
-
-  // Create poller control object
   const pollerControl = {
     stop: () => {
       isActive = false;
@@ -138,11 +140,9 @@ const startTelegramPolling = async (botToken: string, targetMessageId: number, c
 
   activePollers.set(botToken, pollerControl);
   
-  // Start polling
   poll();
 };
 
-// Cleanup function
 export const stopTelegramPolling = (botToken: string) => {
   if (activePollers.has(botToken)) {
     const poller = activePollers.get(botToken)!;
@@ -155,9 +155,10 @@ export const stopTelegramPolling = (botToken: string) => {
 
 export const sendTelegramMessage = async (
   input: any,
-  senderTokenId: string,
-  message: string
+  action:any
 ) => {
+  const message = action.metadata.actionData.config.message
+  const senderTokenId = action.metadata.actionData.config.botToken
   const parseMessage = replaceTokens(message, input);
   const parseSenderTokenId = replaceTokens(senderTokenId, input);
 
@@ -177,9 +178,11 @@ export const sendTelegramMessage = async (
 
 export const sendTelegramMessageAndWait = async (
   input: any,
-  senderTokenId: string,
-  message: string
+  action:any,
+  workflow: any
 ) => {
+  const message = action.metadata.actionData.config.message
+  const senderTokenId = action.metadata.actionData.config.botToken
   const parseMessage = replaceTokens(message, input);
   const parseSenderTokenId = replaceTokens(senderTokenId, input);
 
@@ -193,34 +196,37 @@ export const sendTelegramMessageAndWait = async (
     );
 
     const sentMessage = res.data.result;
-    console.log("✅ Telegram message sent, waiting for reply...");
+    console.log(" Telegram message sent, waiting for reply...");
 
-    // Start targeted polling for this specific message and chat
+    const key = makeKey(input.chatId, sentMessage.message_id)
+    inputMetadat.set(key,input)
+    const getNextAction = getNextActionMetadata(workflow.actions,action.id)
+    console.log(getNextAction,"this is get next action metadata")
+     let nextActionId;
+    if(getNextAction){
+       nextActionId = getNextAction?.id
+    }
+    else{
+      nextActionId="WORKFLOW_COMPLETED"
+    }
+
+    await prisma.excution.create({
+      data:{
+        id:key,
+        workflowId: workflow.id,
+        actionId: action.id,
+        metadata: "sfasdfasdfsaa",
+        pointer: nextActionId,
+        status: "WAITING",
+      }
+    })
     await startTelegramPolling(parseSenderTokenId, sentMessage.message_id, input.chatId);
-
-    return new Promise((resolve, reject) => {
-      const key = makeKey(input.chatId, sentMessage.message_id);
-
-      pendingResponses.set(key, (response) => {
-        console.log("🎉 Response received:", response);
-        resolve(response);
-      });
-
-      setTimeout(() => {
-        if (pendingResponses.has(key)) {
-          pendingResponses.delete(key);
-          stopTelegramPolling(parseSenderTokenId); // Stop polling on timeout
-          reject(new Error("⏳ Timeout: No Telegram reply"));
-        }
-      }, 120000); // 2 min
-    });
   } catch (err) {
     console.error(" Error sending message:", err);
     throw err;
   }
 };
 
-// Cleanup on process exit
 process.on('SIGINT', () => {
   console.log('🧹 Cleaning up pollers...');
   for (const [botToken] of activePollers) {
