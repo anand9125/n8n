@@ -11,6 +11,7 @@ import { userFormStore, userResponseStore } from '@/store/formData';
 import { DragableToken } from './DragableToken';
 import { DroppableInput } from './DroppableInput';
 import SendAndWaitInfoDialog from './DiscriptionDialog';
+import { NodeConfiguration } from './NodeConfigure';
 
 interface FormField {
   label: string;
@@ -65,7 +66,8 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
   const [selectedSubAction, setSelectedSubAction] = useState("");
   const [waitFields, setWaitFields] = useState<FormField[]>([]);
   const [open, setOpen] = useState(false)
-
+  const [showConfig, setShowConfig] = useState(false);
+  const[saveConfiguration,setSaveConfiguration] = useState("");
   const userResponseFieldStore = userResponseStore.getState().setFields;
   const userResonseField = userResponseStore.getState().fields;
   console.log(userResonseField,"this is user response field")
@@ -127,7 +129,8 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
       config: formData,
       timestamp: new Date().toISOString(),
       selectedAction: selectedSubAction,
-      waitFields: selectedSubAction === "sendAndWait" ? waitFields : undefined
+      waitFields: selectedSubAction === "sendAndWait" ? waitFields : undefined,
+      configurationMessage: saveConfiguration
     };
     onSave(actionData);
     userResponseFieldStore(waitFields)
@@ -209,6 +212,11 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
         );
     }
   };
+  
+
+  const handleAvailbeResponse = (userResonseField:any)=>{
+   
+  }
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose(); }}>
@@ -297,11 +305,12 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                       <div key={field.name}>
                         <Label htmlFor={field.name} className="text-sm font-medium mb-2 block">
                           {field.label}
+                          
                           {field.required && <span className="text-red-500 ml-1">*</span>}
                         </Label>
                         {renderField(field)}
                         {field.name === 'botToken' && (
-                          <p className="text-xs text-muted-foreground mt-1">
+                          <p className="text-xs text-muted-foreground  mt-1">
                             Get your bot token from @BotFather on Telegram
                           </p>
                         )}
@@ -375,7 +384,7 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                                     <option value="">Select field type</option>
                                     <option value="text">Text</option>
                                  
-                                    <option value="approval">Approval (Approve/Disapprove)</option>
+                                    <option value="approval/disapproval">Approval (Approve/Disapprove)</option>
                                   </select>
                                 </div>
 
@@ -572,26 +581,34 @@ export const ActionDialogs: React.FC<ActionDialogsProps> = ({
                   </div>
                 )}
                 {
-                  (userResonseField.length > 0) &&
-                  <div className='pt-6'>
-                     <div className="bg-card rounded-lg p-4 mb-6">
-                    This is the field of previous response 
-                    <table className="w-full border border-gray-200 text-sm bg-white">
-                    <tbody>
-                      {userResonseField.map((field, idx) => (
-                        <tr
-                          key={idx}
-                          className="border-t border-gray-200 hover:bg-gray-50 transition"
-                        >
-                          <td className="px-3 py-2 text-gray-700">{field.label}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  </div>
-                  </div>
-                }
+                userResonseField.length > 0 && (
+                  <div className="pt-6">
+                    <div className="p-4 rounded-lg border border-border bg-muted/30 flex flex-col gap-3">
+                      <p className="text-sm text-muted-foreground">
+                        You have responses from the previous node — you can use them in this configuration.
+                      </p>
 
+                      <button
+                        onClick={() => setShowConfig(true)}
+                        className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition text-sm font-medium w-fit"
+                      >
+                        Configure Settings
+                      </button>
+                    </div>
+
+                    {showConfig && (
+                      <NodeConfiguration
+                        userResponseFields={userResonseField}
+                        onSaveConfiguration={(config: any) => {
+                          console.log(config.conditionalMessages);
+                           setSaveConfiguration(config.conditionalMessages)
+                          setShowConfig(false); // hide after saving
+                        }}
+                      />
+                    )}
+                  </div>
+                )
+              }
               </div>
                <SendAndWaitInfoDialog open={open} onOpenChange={setOpen} />
           </div>

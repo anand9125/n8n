@@ -7,6 +7,8 @@ const prisma = new PrismaClient();
 const inputMetadat:Map<string,any> = new Map();
 import { IncomingEmail } from "../types/type";
 import { getWorkflow } from "./getWorkflow";
+import { generateHtml } from "./helper/generatedHtml";
+import { parse } from "zod";
 
 const replaceTokens = (template: string, data: Record<string, any>) => {
   return template.replace(/\{\{(.*?)\}\}/g, (_, key) => {
@@ -36,12 +38,11 @@ export const sendMail = async (
       "[sendMail] Sending email with:",
       { from: parseSenderEmailId, to: input.emailId, subject: parsedSubject }
     );
-
     const response = await resend.emails.send({
       from: parseSenderEmailId,
       to: input.emailId,
       subject: parsedSubject,
-      html: parsedBody,
+      html:parsedBody,
     });
 
     console.log("[sendMail] Response:", response);
@@ -52,6 +53,7 @@ export const sendMail = async (
 
 
 export const sendMailTOWaitAndReply = async (
+  action:any,
   resendApi: string,
   senderEmailId: string,
   excutionId: string,
@@ -64,13 +66,16 @@ export const sendMailTOWaitAndReply = async (
     const parsedSubject = replaceTokens(subject, input);
     const parseResendApi = replaceTokens(resendApi, input);
     const parseSenderEmailId = replaceTokens(senderEmailId, input);
+    const getHtmlMessage = generateHtml(action.metadata.actionData.waitFields,parsedBody)
+    console.log(getHtmlMessage,"tis is the htmo")
+
     const resend = new Resend(`${parseResendApi}`);
     const response = await resend.emails.send({
       from: parseSenderEmailId,
       to: input.emailId,
       replyTo:`${excutionId}@reply.coursehubb.store`,
       subject: parsedSubject,
-      html: parsedBody,
+      html: getHtmlMessage,
     });
   } catch (err) {
     console.error("[sendMail] Error:", err);
@@ -103,7 +108,7 @@ export const sendMailAndWait = async ( workflow: any,action:any,input: any) => {
             status: "WAITING",
           }
         })
-        await sendMailTOWaitAndReply(resendApi, senderEmailId,excution.id, input, subject, body);
+        await sendMailTOWaitAndReply(action,resendApi, senderEmailId,excution.id, input, subject, body);
         inputMetadat.set(excution.id,input)
         return excution;
      }catch (err) {
