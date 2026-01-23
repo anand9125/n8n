@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { createAvailaAction, getAvailableActionById, getAvailableActions, updateAvailableAction} from "../controller/actionController";
-import { adminMiddlewares } from "../middlewares/adminMiddlewares";
+import { createAvailaAction, getAvailableActionById, getAvailableActions, updateAvailableAction} from "../controller/actionController.js";
+import { adminMiddlewares } from "../middlewares/adminMiddlewares.js";
 
 const router = Router()
 

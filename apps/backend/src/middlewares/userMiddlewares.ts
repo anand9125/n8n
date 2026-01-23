@@ -2,7 +2,7 @@ import jwt from "jsonwebtoken";
 
 import { Request, Response } from "express";
 import { UUID } from "crypto";
-import { JWT_SECRET } from "../types/type";
+import { JWT_SECRET } from "../types/type.js";
 export interface CustomRequest extends Request {
   id?: UUID;
 }

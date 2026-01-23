@@ -1,3 +1,4 @@
+import { Prisma } from "@repo/db/generated/prisma/client";
 import z from "zod";
 export const JWT_SECRET  = "user_secret";
 export const JWT_SEC = "admin_secret";
@@ -17,14 +18,13 @@ export const workflowSchema = z.object({
     }))
 })
 
-import { Prisma, status } from "@prisma/client";
 
 export type ActionResponse = {
   id: string;
   workflowId: string;
   actionId: string;
   metadata: Prisma.JsonValue; // matches your `Json` column
-  status: status;             // enum from Prisma
+  status: string;             // enum from Prisma
   pointer: string | null;
 }
 ;

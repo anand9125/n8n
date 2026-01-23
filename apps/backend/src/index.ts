@@ -1,14 +1,14 @@
 import express, { Response ,Request} from "express";
 import cors from "cors";
-import { userRouter } from "./routes/userRouter";
-import { workflowRouter } from "./routes/workflowRouter";
-import { triggerRouter } from "./routes/triggerRouter";
-import { actionRouter } from "./routes/actions";
-import { credentialRouter } from "./routes/credentialsRouter";
-import { webhookRouter } from "./worker/webhook";
+import { userRouter } from "./routes/userRouter.js";
+import { workflowRouter } from "./routes/workflowRouter.js";
+import { triggerRouter } from "./routes/triggerRouter.js";
+import { actionRouter } from "./routes/actions.js";
+import { credentialRouter } from "./routes/credentialsRouter.js";
+import { webhookRouter } from "./worker/webhook.js";
 
 
-import { postmarkRouter } from "./worker/email";
+import { postmarkRouter } from "./worker/email.js";
 
 const app = express();
 app.use(express.json());
@@ -42,7 +42,6 @@ app.post("/api/v1/test", (req: Request, res: Response) => {
     console.log(edge);
   })
 
-   // console.log(workflowData, "==> extracted workflow data");
 });
 
 

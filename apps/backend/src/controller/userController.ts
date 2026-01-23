@@ -1,8 +1,9 @@
 import { Request,Response } from "express";
-import {PrismaClient} from "@prisma/client";
-import { JWT_SECRET } from "../types/type";
+import { JWT_SECRET } from "../types/type.js";
 import jwt from "jsonwebtoken";
-const prisma = new PrismaClient();
+import prisma from "@repo/db/lib"
+
+
 
 export const userSignup = async (req: Request, res: Response) => { 
     try{

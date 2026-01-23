@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import { Request,Response } from "express";
-import { CustomRequest } from "../middlewares/userMiddlewares";
-const prisma = new PrismaClient();
+import { CustomRequest } from "../middlewares/userMiddlewares.js";
+import prisma from "@repo/db/lib"
 
 
 export const createWorkflow = async (req: CustomRequest, res: Response) => {
@@ -73,8 +72,8 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
             target: edge.target,
         }));
 
-        const workflow = await prisma.$transaction(async (tx) => {
-           const createdWorkflow = await tx.workflow.create({
+        const workflow = await prisma.$transaction(async (tx:any) => {
+           const createdWorkflow = await prisma.workflow.create({
                 data: {
                     id: workflowId,
                     title: workflowTitle,
@@ -93,7 +92,7 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
                 include: { actions: true },  // Important to get action IDs
             });
 
-            const trigger = await tx.trigger.create({
+            const trigger = await prisma.trigger.create({
                 data: {
                     workflowId: workflowId,
                     availableTriggersId: triggerNodeId,
@@ -103,12 +102,12 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
                 },
             });
 
-            await tx.workflow.update({
+            await prisma.workflow.update({
                 where: { id: workflowId },
                 data: { triggerId: trigger.id },
             });
 
-            await tx.edge.createMany({
+            await prisma.edge.createMany({
                 data: simplifiedEdges.map((edge: any) => ({
                     workflowId: workflowId,
                     sourceNodeId: edge.source,
@@ -122,11 +121,11 @@ export const createWorkflow = async (req: CustomRequest, res: Response) => {
 
                 if (action) {
                     const createdAction = createdWorkflow.actions.find(
-                        (a) => a.availableActionId === action.availableActionId
+                        (a:any) => a.availableActionId === action.availableActionId
                     );
 
                     if (createdAction) {
-                        await tx.subnodesActions.create({
+                        await prisma.subnodesActions.create({
                             data: {
 
                                 subnodeName: subnode.subnodeName,

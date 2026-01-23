@@ -1,19 +1,30 @@
 {
-  "name": "db",
+  "name": "@repo/db",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
-  "exports":{
-    ".": "./dist/index.js",
-    "./index": "./dist/index.js"},
+  "exports": {
+    "./lib": {
+      "types": "./src/lib/index.ts",
+      "default": "./src/lib/index.ts"
+    },
+    "./generated/prisma/client": {
+      "types": "./src/generated/prisma/client.ts",
+      "default": "./src/generated/prisma/client.ts"
+    }
+  },
   "scripts": {
-     "build": "tsc",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
+  "type": "module",
   "license": "ISC",
+  "devDependencies": {
+    "dotenv": "^16.0.3",
+    "prisma": "^7.3.0"
+  },
   "dependencies": {
-    "@prisma/client": "^6.15.0"
+    "@prisma/adapter-pg": "^7.3.0"
   }
 }

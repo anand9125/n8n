@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { createCredentials, deleteCredentials, getCredentials, getCredentialsById, updateCredentials } from "../controller/credentialController";
+import { createCredentials, deleteCredentials, getCredentials, getCredentialsById, updateCredentials } from "../controller/credentialController.js";
 
 const router = Router()
 

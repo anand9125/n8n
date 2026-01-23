@@ -1,5 +1,5 @@
 import jwt from "jsonwebtoken";
-import { JWT_SEC } from "../types/type";
+import { JWT_SEC } from "../types/type.js";
 
 export const adminMiddlewares = async (req: any, res: any, next: any) => {
     const token = req.headers.authorization;

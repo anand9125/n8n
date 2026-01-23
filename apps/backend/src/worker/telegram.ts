@@ -1,11 +1,10 @@
 import axios from "axios";
-import {PrismaClient} from "@prisma/client";
-import { getNextActionMetadata } from "./email";
-import { sendWorkflowForProcess } from "./processWorkflow";
-import { getWorkflow } from "./getWorkflow";
-import { ActionResponse } from "../types/type";
+import { getNextActionMetadata } from "./email.js";
+import { sendWorkflowForProcess } from "./processWorkflow.js";
+import { getWorkflow } from "./getWorkflow.js";
+import { ActionResponse } from "../types/type.js";
+import prisma from "@repo/db/lib"
 const inputMetadat:Map<string,any> = new Map();
-const prisma = new PrismaClient();
 const activePollers: Map<string, { stop: () => void; isActive: boolean }> = new Map();  
 const lastUpdateIds: Map<string, number> = new Map();  
 

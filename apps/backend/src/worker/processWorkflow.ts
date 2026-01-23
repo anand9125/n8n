@@ -1,9 +1,8 @@
-import { ActionResponse } from "../types/type";
-import { sendMail, sendMailAndWait } from "./email";
-import { sendTelegramMessage, sendTelegramMessageAndWait } from "./telegram";
-import { PrismaClient } from "@prisma/client";
+import { ActionResponse } from "../types/type.js";
+import { sendMail, sendMailAndWait } from "./email.js";
+import { sendTelegramMessage, sendTelegramMessageAndWait } from "./telegram.js";
+import prisma from "@repo/db/lib"
 
-const prisma = new PrismaClient();
 export const sendWorkflowForProcess = async ( workflow: any,inputData: any,startFromActionId?: string,execution?: ActionResponse) => {
   
    let startIndex = 0;

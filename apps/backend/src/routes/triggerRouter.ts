@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { createAvailableTrigger, getAvailableTriggersById, getAvailableTriggers, updateAvailableTriggers } from "../controller/trigger";
-import { adminMiddlewares } from "../middlewares/adminMiddlewares";
+import { createAvailableTrigger, getAvailableTriggersById, getAvailableTriggers, updateAvailableTriggers } from "../controller/trigger.js";
+import { adminMiddlewares } from "../middlewares/adminMiddlewares.js";
 
 const router = Router()
 

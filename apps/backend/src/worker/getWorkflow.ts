@@ -1,5 +1,4 @@
-import { PrismaClient } from "@prisma/client";
-const prisma = new PrismaClient();
+import prisma from "@repo/db/lib"   
 
 export const getWorkflow = async (workflowId: string) => {
     const workflow = await prisma.workflow.findFirst({

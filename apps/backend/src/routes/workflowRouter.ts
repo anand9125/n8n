@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { Request,Response } from "express";
-import { createWorkflow, getAllWorkflows, getWorkflowById, updateWorkflow } from "../controller/workflowRouter";
-import { userMiddleware } from "../middlewares/userMiddlewares";
+import { createWorkflow, getAllWorkflows, getWorkflowById, updateWorkflow } from "../controller/workflowRouter.js";
+import { userMiddleware } from "../middlewares/userMiddlewares.js";
 
 const router = Router()
 

@@ -1,7 +1,5 @@
 import { Request,Response } from "express";
-import {PrismaClient} from "@prisma/client";
-
-const prisma = new PrismaClient();
+import prisma from "@repo/db/lib"
 export const createAvailaAction = async (req: Request, res: Response) => {
     try{
         const {name,image,id} = req.body;

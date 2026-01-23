@@ -1,13 +1,12 @@
 import { Resend } from "resend"
 import { Router, Request, Response } from 'express';
 const router = Router();
-import {PrismaClient} from "@prisma/client";
-import { sendWorkflowForProcess } from "./processWorkflow";
-const prisma = new PrismaClient();
+import prisma from "@repo/db/lib"
+import { sendWorkflowForProcess } from "./processWorkflow.js";
 const inputMetadat:Map<string,any> = new Map();
-import { IncomingEmail } from "../types/type";
-import { getWorkflow } from "./getWorkflow";
-import { generateHtml } from "./helper/generatedHtml";
+import { IncomingEmail } from "../types/type.js";
+import { getWorkflow } from "./getWorkflow.js";
+import { generateHtml } from "./helper/generatedHtml.js";
 import { parse } from "zod";
 
 const replaceTokens = (template: string, data: Record<string, any>) => {

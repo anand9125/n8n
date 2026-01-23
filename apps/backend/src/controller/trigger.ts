@@ -1,7 +1,6 @@
 import { Request,Response } from "express";
-import {PrismaClient} from "@prisma/client";
+import prisma from "@repo/db/lib"
 
-const prisma = new PrismaClient();
 export const createAvailableTrigger = async (req: Request, res: Response) => {
     try{
         const {name,image,id} = req.body;
