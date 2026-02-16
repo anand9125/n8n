@@ -15,6 +15,9 @@ export default function SignupPage() {
         name
       })
       console.log(response.data);
+      if (response.status === 200) {
+        window.location.href = "/signin";
+      }
    }
 
   return (

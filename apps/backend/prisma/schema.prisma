@@ -1,0 +1,115 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Platform {
+  TELEGRAM
+  RESEND_EMAIL
+  GEMINI
+  GROQ
+}
+
+enum TriggerType {
+  MANUAL
+  WEBHOOK
+}
+
+enum ExecutionStatus {
+  PENDING
+  RUNNING
+  PAUSED
+  COMPLETED
+  FAILED
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  password     String
+  lastLoggedIn DateTime?
+  credentials  Credentials[]
+  workflows    Workflow[]
+}
+
+model Credentials {
+  id       String   @id @default(uuid())
+  title    String
+  platform Platform
+  data     Json
+  userId   String
+  user     User     @relation(fields: [userId], references: [id])
+}
+
+model Workflow {
+  id          String      @id @default(uuid())
+  userId      String
+  user        User        @relation(fields: [userId], references: [id])
+  title       String
+  enabled     Boolean     @default(false)
+  nodesJson   Json?
+  connections Json?
+  nodes       Node[]
+  webhookId   String?     @unique
+  webhook     Webhook?    @relation(fields: [webhookId], references: [id])
+  triggerType TriggerType
+  executions  Execution[]
+  forms       Form[]
+}
+
+model Node {
+  id         String   @id @default(uuid())
+  title      String
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id])
+  enabled    Boolean  @default(false)
+}
+
+model Webhook {
+  id       String    @id @default(uuid())
+  title    String
+  secret   String?
+  Workflow Workflow?
+}
+
+model Execution {
+  id           String          @id @default(uuid())
+  workflowId   String
+  workflow     Workflow        @relation(fields: [workflowId], references: [id])
+  status       ExecutionStatus @default(PENDING)
+  tasksDone    Int             @default(0)
+  totalTasks   Int?
+  result       Json?
+  pausedNodeId String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+  metadata     Json?
+}
+
+model Form {
+  id          String           @id @default(uuid())
+  workflowId  String
+  workflow    Workflow         @relation(fields: [workflowId], references: [id])
+  nodeId      String
+  fields      Json
+  submissions FormSubmission[]
+  @@unique([workflowId, nodeId])
+}
+
+model FormSubmission {
+  id        String   @id @default(uuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id])
+  data      Json
+  createdAt DateTime @default(now())
+}

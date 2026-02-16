@@ -1,54 +1,36 @@
-import express, { Response ,Request} from "express";
+import express from "express";
 import cors from "cors";
-import { userRouter } from "./routes/userRouter.js";
-import { workflowRouter } from "./routes/workflowRouter.js";
-import { triggerRouter } from "./routes/triggerRouter.js";
-import { actionRouter } from "./routes/actions.js";
-import { credentialRouter } from "./routes/credentialsRouter.js";
-import { webhookRouter } from "./worker/webhook.js";
+import morgan from "morgan";
+import cookieParser from "cookie-parser";
+import dotenv from "dotenv";
+import routes from "./routes/routes.js";
 
+dotenv.config();
 
-import { postmarkRouter } from "./worker/email.js";
+if (process.env.START_WORKER !== "false") {
+  import("./worker/nodesexecution.js").catch((err) => {
+    console.error("Failed to start worker:", err);
+  });
+}
 
 const app = express();
+
+app.use(cors({
+  origin: [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+  ],
+  credentials: true,
+}));
 app.use(express.json());
+app.use(cookieParser());
+app.use(morgan("dev"));
+app.use("/api", routes);
 
-app.use(cors());
 
-app.use("/api/v1/user",userRouter)
-
-app.use("/api/v1/workflow",workflowRouter)
-
-app.use("/api/v1/avaialbleTriggers",triggerRouter)
-
-app.use("/api/v1/avaialbleActions",actionRouter)
-
-app.use("/api/v1/credentials",credentialRouter)
-
-app.use("/api/v1/workflow",webhookRouter)
-
-app.use("/api/v1/postmark",postmarkRouter)
-
-app.post("/api/v1/test", (req: Request, res: Response) => {
-  const { nodes, edges, workflowId, userId } = req.body;
-
-   console.log(nodes)
-   console.log(edges)
-   console.log(workflowId)
-   nodes.forEach((node: any) => {
-    console.log(node);
-  })
-  edges.map((edge: any) => {
-    console.log(edge);
-  })
-
+const PORT = Number(process.env.PORT) || 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
 });
 
-
-
-
-
-
-app.listen(4000, () => {   
-    console.log("Server is running on port 4000");   
-});
+export default app;

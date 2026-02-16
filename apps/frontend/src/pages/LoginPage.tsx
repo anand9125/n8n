@@ -16,6 +16,9 @@ export default function SigninPage() {
     console.log(response.data);
     localStorage.setItem('token', response.data.token);
     localStorage.setItem("userId", response.data.user.id);
+    if (response.status === 200) {
+      window.location.href = "/";
+    }
   }
 
   return (

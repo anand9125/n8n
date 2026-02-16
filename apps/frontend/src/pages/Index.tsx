@@ -7,6 +7,11 @@ import { Button } from "@/components/ui/button";
 import { Crown } from "lucide-react";
 
 const Index = () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    window.location.href = "/signin";
+
+  }
   return (
     <div className="min-h-screen ">
       <div className="max-w-7xl mx-auto p-6">
