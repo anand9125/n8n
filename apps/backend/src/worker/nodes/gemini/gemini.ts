@@ -1,11 +1,8 @@
-// apps/server/src/Workers/nodes/agent/geminiAgent.ts
-import  Mustache from "mustache";
+import Mustache from "mustache";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
-import { createToolCallingAgent, AgentExecutor } from "langchain/agents";
 import { ChatPromptTemplate } from "@langchain/core/prompts";
-import { tools } from "./tools/tools.js";
 import prisma from "../../../lib.js";
-
+import { tools } from "./tools/tools.js";
 
 type RunAgentParams = {
   credentialId: string | null | undefined;
@@ -19,8 +16,7 @@ type RunAgentParams = {
 
 function resolveTemplate(template: string, context: Record<string, any>): string {
   if (!template || typeof template !== "string") return template;
-  // Mustache will handle most templating; we provide a tiny helper for $json / $node style if used
-  // First, replace simple $json and $node placeholders if present, then run Mustache for general templates
+
   const replaced = template
     .replace(/\{\{\s*\$json\.body\.([a-zA-Z0-9_]+)\s*\}\}/g, (_, key) => {
       return context.$json?.body?.[key] ?? `{{${key}}}`;
@@ -31,16 +27,11 @@ function resolveTemplate(template: string, context: Record<string, any>): string
 
   try {
     return Mustache.render(replaced, context);
-  } catch (e) {
-    // fallback to replaced string on bad mustache input
+  } catch {
     return replaced;
   }
 }
 
-/**
- * Create ChatGoogleGenerativeAI LLM from credential record
- * Credential record is expected to have geminiApiKey (string)
- */
 function createGeminiModelFromCreds(credsData: any) {
   const data = typeof credsData === "string" ? JSON.parse(credsData) : credsData;
   const apiKey = data?.geminiApiKey ?? data?.api_key ?? data?.apiKey;
@@ -53,111 +44,60 @@ function createGeminiModelFromCreds(credsData: any) {
   });
 }
 
-/**
- * Main entry: run the Gemini tool-calling agent
- */
 export async function runGeminiAgent({
   credentialId,
   template,
   context,
-  workflowId,
-  executionId,
-  nodeId,
-  useMemory = false,
 }: RunAgentParams) {
   try {
-    // Validate prompt
     let rawPrompt = template?.prompt ?? template?.message ?? "";
     if (!rawPrompt || typeof rawPrompt !== "string" || rawPrompt.trim() === "") {
       throw new Error("Prompt must be provided in the template");
     }
 
-    // Resolve templating (Mustache + small $json/$node helpers)
     const prompt = resolveTemplate(rawPrompt, context || {});
 
-    // Load credentials from DB
-    if (!credentialId) {
-      throw new Error("credentialId required");
-    }
+    if (!credentialId) throw new Error("credentialId required");
 
     const creds = await prisma.credentials.findUnique({
       where: { id: credentialId },
     });
 
-    if (!creds) {
-      throw new Error("Gemini credentials not found");
-    }
+    if (!creds) throw new Error("Gemini credentials not found");
 
     const model = createGeminiModelFromCreds(creds.data);
 
-    // TODO: Implement memory/history if needed
-    // For now, no conversation history
-    const history: { role: "user" | "assistant"; content: string }[] = [];
+    // 👇 THIS replaces agents in LangChain v1
+    const modelWithTools = model.bindTools(tools);
 
-    // Build ChatPromptTemplate: system + history + user
-    const systemMessage =
-      "You are a helpful AI assistant with access to tools. Use tools when needed for facts, web lookups or summaries. " +
-      "If asked to return JSON, return only valid JSON without explanatory text or code fences.";
-
-    const messages: any[] = [
-      ["system", systemMessage],
-      // convert history to prompt entries
-      ...history.map((h) => [h.role === "assistant" ? "assistant" : "user", h.content]),
+    const promptTemplate = ChatPromptTemplate.fromMessages([
+      [
+        "system",
+        "You are a helpful AI assistant with access to tools. Use tools when needed. If asked to return JSON, return only valid JSON."
+      ],
       ["user", "{input}"],
-      ["placeholder", "{agent_scratchpad}"],
-    ];
+    ]);
 
-    const promptTemplate = ChatPromptTemplate.fromMessages(messages as any);
+    const chain = promptTemplate.pipe(modelWithTools);
 
-    // create tool-calling agent
-    const agent = await createToolCallingAgent({
-      llm: model,
-      tools,
-      prompt: promptTemplate,
+    const result = await chain.invoke({
+      input: String(prompt),
     });
 
-    const executor = new AgentExecutor({
-      agent,
-      tools,
-      verbose: true,
-      maxIterations: 10,
-    });
-
-    // Invoke the agent with the resolved prompt
-    const result = await executor.invoke({ input: String(prompt) });
-    if (!result) throw new Error("Agent returned no result");
-
-    // result.output often contains assistant-generated text (may include code fences or JSON)
-    let rawText = String(result.output ?? "").trim();
-
-    // strip common JSON code fences if any
+    let rawText = String(result?.content ?? "").trim();
     rawText = rawText.replace(/^```json\s*/i, "").replace(/```$/i, "").trim();
 
-    // TODO: Implement memory storage if needed
-    // TODO: Implement event publishing for UI updates (use your own routing system)
-
-    // Try to parse as JSON and return structured object when possible
     try {
       const parsed = JSON.parse(rawText);
       if (parsed && typeof parsed === "object") {
-        return {
-          text: parsed,
-          query: String(prompt),
-          intermediateSteps: result.intermediateSteps ?? [],
-        };
+        return { text: parsed, query: prompt };
       }
-    } catch {
-      // not valid JSON — fall through to returning raw text
-    }
+    } catch {}
 
-    return {
-      text: rawText,
-      query: String(prompt),
-      intermediateSteps: result.intermediateSteps ?? [],
-    };
+    return { text: rawText, query: prompt };
+
   } catch (err: any) {
     console.error("runGeminiAgent error:", err?.message ?? err);
-    // return error message similarly to Python code
     return { result: `Agent execution failed: ${err?.message ?? String(err)}` };
   }
 }
